@@ -1,0 +1,78 @@
+.problem-detail {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 1rem;
+  color: #667eea;
+  text-decoration: none;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+.problem-header {
+  margin-bottom: 2rem;
+}
+
+.problem-header h1 {
+  margin-bottom: 1rem;
+}
+
+.problem-meta {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.subject,
+.difficulty {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.subject {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.difficulty {
+  background: #f3e5f5;
+  color: #7b1fa2;
+}
+
+.author {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.problem-description {
+  background: #f5f5f5;
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+}
+
+.problem-pdf {
+  margin-bottom: 3rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.loading,
+.error {
+  text-align: center;
+  padding: 3rem;
+}
+
+.error {
+  color: #e74c3c;
+}
+

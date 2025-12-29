@@ -1,0 +1,191 @@
+// SQLite용 스키마 (개발용)
+// 사용법: 이 파일을 schema.prisma로 복사하거나 Prisma에서 직접 사용
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum VerificationType {
+  UNIVERSITY
+  HIGH_SCHOOL
+  QUALIFICATION
+}
+
+enum ProblemStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum Subject {
+  KOREAN
+  MATH
+  ENGLISH
+  KOREAN_HISTORY
+  SOCIAL_STUDIES
+  SCIENCE
+  SECOND_LANGUAGE
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum CommentSortOrder {
+  NEWEST
+  OLDEST
+  MOST_LIKED
+}
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  password      String?
+  name          String
+  role          UserRole  @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // OAuth fields
+  googleId      String?   @unique
+  kakaoId       String?   @unique
+
+  // Relations
+  verifications Verification[]
+  problems      Problem[]
+  reviewedProblems Problem[] @relation("ReviewedProblems")
+  comments      Comment[]
+  commentLikes  CommentLike[]
+  submissions   ProblemSubmission[] @relation("ProblemSubmissions")
+
+  @@index([email])
+}
+
+model Verification {
+  id            String            @id @default(uuid())
+  userId        String
+  type          VerificationType
+  status        VerificationStatus @default(PENDING)
+  emailDomain   String?
+  documentUrl   String?
+  verifiedAt    DateTime?
+  rejectedAt    DateTime?
+  rejectionReason String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Problem {
+  id            String    @id @default(uuid())
+  title         String
+  description   String?
+  subject       Subject
+  difficulty    Difficulty?
+  pdfUrl        String
+  status        ProblemStatus @default(PENDING)
+  submittedById String
+  reviewedById  String?
+  reviewedAt    DateTime?
+  rejectionReason String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  submittedBy   User              @relation(fields: [submittedById], references: [id])
+  reviewedBy    User?             @relation("ReviewedProblems", fields: [reviewedById], references: [id])
+  comments      Comment[]
+  submission    ProblemSubmission?
+
+  @@index([status])
+  @@index([subject])
+  @@index([submittedById])
+}
+
+model ProblemSubmission {
+  id            String    @id @default(uuid())
+  problemId     String    @unique
+  submittedById String
+  status        ProblemStatus @default(PENDING)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  problem       Problem   @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  submittedBy   User      @relation("ProblemSubmissions", fields: [submittedById], references: [id])
+
+  @@index([status])
+  @@index([submittedById])
+}
+
+model Comment {
+  id            String    @id @default(uuid())
+  content       String
+  problemId     String
+  authorId      String
+  parentId      String?
+  likeCount     Int       @default(0)
+  dislikeCount  Int       @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  problem       Problem   @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  author        User      @relation(fields: [authorId], references: [id])
+  parent        Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies       Comment[] @relation("CommentReplies")
+  likes         CommentLike[]
+  editHistory   CommentEditHistory[]
+
+  @@index([problemId])
+  @@index([authorId])
+  @@index([parentId])
+}
+
+model CommentEditHistory {
+  id            String    @id @default(uuid())
+  commentId     String
+  content       String
+  editedAt      DateTime  @default(now())
+
+  comment       Comment   @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@index([commentId])
+}
+
+model CommentLike {
+  id            String    @id @default(uuid())
+  commentId     String
+  userId        String
+  isLike        Boolean
+  createdAt     DateTime  @default(now())
+
+  comment       Comment   @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId])
+  @@index([commentId])
+  @@index([userId])
+}
+
