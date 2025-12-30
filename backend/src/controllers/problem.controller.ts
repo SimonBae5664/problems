@@ -7,9 +7,9 @@ export class ProblemController {
   /**
    * 문제 제출
    */
-  static async createProblem(req: AuthRequest, res: Response) {
+  static async createProblem(req: Request, res: Response) {
     try {
-      if (!req.user) {
+      if (!(req as any).user) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
@@ -25,7 +25,7 @@ export class ProblemController {
         subject: subject as Subject,
         difficulty: difficulty as Difficulty | undefined,
         pdfUrl,
-        submittedById: req.user.id,
+        submittedById: ((req as any).user as { id: string; email: string; role: string }).id,
       });
 
       res.status(201).json({ problem });
@@ -37,7 +37,7 @@ export class ProblemController {
   /**
    * 공개된 문제 목록 조회
    */
-  static async getPublishedProblems(req: AuthRequest, res: Response) {
+  static async getPublishedProblems(req: Request, res: Response) {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
@@ -54,11 +54,11 @@ export class ProblemController {
   /**
    * 문제 상세 조회
    */
-  static async getProblemById(req: AuthRequest, res: Response) {
+  static async getProblemById(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const includeUnpublished = req.user?.role === 'ADMIN' || 
-        (req.user && await ProblemService.getProblemById(id, true).then(p => p.submittedById === req.user?.id).catch(() => false));
+      const includeUnpublished = (req as any).user?.role === 'ADMIN' || 
+        ((req as any).user && await ProblemService.getProblemById(id, true).then(p => p.submittedById === (req as any).user?.id).catch(() => false));
 
       const problem = await ProblemService.getProblemById(id, includeUnpublished || false);
       res.json({ problem });
@@ -73,16 +73,16 @@ export class ProblemController {
   /**
    * 내가 제출한 문제 목록
    */
-  static async getMyProblems(req: AuthRequest, res: Response) {
+  static async getMyProblems(req: Request, res: Response) {
     try {
-      if (!req.user) {
+      if (!(req as any).user) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
 
-      const result = await ProblemService.getMyProblems(req.user.id, page, limit);
+      const result = await ProblemService.getMyProblems(((req as any).user as { id: string; email: string; role: string }).id, page, limit);
       res.json(result);
     } catch (error) {
       res.status(500).json({ error: 'Failed to get my problems' });
@@ -92,7 +92,7 @@ export class ProblemController {
   /**
    * 운영진: 대기 중인 문제 목록
    */
-  static async getPendingProblems(req: AuthRequest, res: Response) {
+  static async getPendingProblems(req: Request, res: Response) {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
@@ -107,14 +107,14 @@ export class ProblemController {
   /**
    * 운영진: 문제 승인
    */
-  static async approveProblem(req: AuthRequest, res: Response) {
+  static async approveProblem(req: Request, res: Response) {
     try {
-      if (!req.user) {
+      if (!(req as any).user) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
       const { id } = req.params;
-      const problem = await ProblemService.approveProblem(id, req.user.id);
+      const problem = await ProblemService.approveProblem(id, ((req as any).user as { id: string; email: string; role: string }).id);
       res.json({ problem });
     } catch (error: any) {
       res.status(500).json({ error: error.message || 'Failed to approve problem' });
@@ -124,9 +124,9 @@ export class ProblemController {
   /**
    * 운영진: 문제 거부
    */
-  static async rejectProblem(req: AuthRequest, res: Response) {
+  static async rejectProblem(req: Request, res: Response) {
     try {
-      if (!req.user) {
+      if (!(req as any).user) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
@@ -137,7 +137,7 @@ export class ProblemController {
         return res.status(400).json({ error: 'Rejection reason is required' });
       }
 
-      const problem = await ProblemService.rejectProblem(id, req.user.id, reason);
+      const problem = await ProblemService.rejectProblem(id, ((req as any).user as { id: string; email: string; role: string }).id, reason);
       res.json({ problem });
     } catch (error: any) {
       res.status(500).json({ error: error.message || 'Failed to reject problem' });
@@ -147,14 +147,14 @@ export class ProblemController {
   /**
    * 운영진: 검수 시작
    */
-  static async startReview(req: AuthRequest, res: Response) {
+  static async startReview(req: Request, res: Response) {
     try {
-      if (!req.user) {
+      if (!(req as any).user) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
       const { id } = req.params;
-      const problem = await ProblemService.startReview(id, req.user.id);
+      const problem = await ProblemService.startReview(id, ((req as any).user as { id: string; email: string; role: string }).id);
       res.json({ problem });
     } catch (error: any) {
       res.status(500).json({ error: error.message || 'Failed to start review' });

@@ -53,7 +53,7 @@ export class AuthController {
 
   static async getProfile(req: any, res: Response) {
     try {
-      const user = req.user;
+      const user = (req as any).user;
       res.json({ user });
     } catch (error) {
       res.status(500).json({ error: 'Failed to get profile' });
@@ -87,12 +87,12 @@ export class AuthController {
 
   static async resendVerificationEmail(req: any, res: Response) {
     try {
-      if (!req.user) {
+      if (!(req as any).user) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
       const { EmailService } = await import('../services/email.service');
-      await EmailService.resendVerificationEmail(req.user.id);
+      await EmailService.resendVerificationEmail(((req as any).user as { id: string; email: string; role: string }).id);
 
       res.json({ message: '인증 이메일이 재발송되었습니다.' });
     } catch (error: any) {

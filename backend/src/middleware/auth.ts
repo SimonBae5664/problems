@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import prisma from '../utils/prisma';
+import { prisma } from '../utils/prisma';
 
 export interface AuthRequest extends Request {
   user?: {
@@ -39,7 +39,7 @@ export const authenticateToken = async (
       return res.status(401).json({ error: 'User not found' });
     }
 
-    req.user = user;
+    (req as any).user = user;
     next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
@@ -50,11 +50,11 @@ export const authenticateToken = async (
 };
 
 export const requireAdmin = (
-  req: AuthRequest,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  if (!req.user || req.user.role !== 'ADMIN') {
+  if (!req.user || (req.user as { id: string; email: string; role: string }).role !== 'ADMIN') {
     return res.status(403).json({ error: 'Admin access required' });
   }
   next();

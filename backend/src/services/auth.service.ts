@@ -96,9 +96,12 @@ export class AuthService {
 
 
   static generateToken(userId: string): string {
+    if (!JWT_SECRET || JWT_SECRET === 'default-secret') {
+      throw new Error('JWT_SECRET is not properly configured');
+    }
     return jwt.sign({ userId }, JWT_SECRET, {
       expiresIn: JWT_EXPIRES_IN,
-    });
+    } as jwt.SignOptions);
   }
 
   static verifyToken(token: string): { userId: string } {

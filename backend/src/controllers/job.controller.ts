@@ -6,10 +6,10 @@ export class JobController {
   /**
    * Create a processing job for a file
    */
-  static async createJob(req: AuthRequest, res: Response) {
+  static async createJob(req: Request, res: Response) {
     try {
       const { fileId, jobType } = req.body;
-      const userId = req.user!.id;
+      const userId = ((req as any).user as { id: string; email: string; role: string })!.id;
 
       if (!fileId || !jobType) {
         return res.status(400).json({ error: 'fileId and jobType are required' });
@@ -54,10 +54,10 @@ export class JobController {
   /**
    * Get job status
    */
-  static async getJobStatus(req: AuthRequest, res: Response) {
+  static async getJobStatus(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const userId = req.user!.id;
+      const userId = ((req as any).user as { id: string; email: string; role: string })!.id;
 
       const job = await prisma.processingJob.findUnique({
         where: { id },
@@ -104,9 +104,9 @@ export class JobController {
   /**
    * List jobs for a user
    */
-  static async listJobs(req: AuthRequest, res: Response) {
+  static async listJobs(req: Request, res: Response) {
     try {
-      const userId = req.user!.id;
+      const userId = ((req as any).user as { id: string; email: string; role: string })!.id;
       const { status, limit = 50, offset = 0 } = req.query;
 
       const where: any = { ownerId: userId };

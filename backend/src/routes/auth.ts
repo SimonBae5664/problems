@@ -16,7 +16,7 @@ passport.use(
     },
     async (payload, done) => {
       try {
-        const prisma = (await import('../utils/prisma')).default;
+        const { prisma } = await import('../utils/prisma');
         const user = await prisma.user.findUnique({
           where: { id: payload.userId },
         });

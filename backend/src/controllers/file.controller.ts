@@ -8,10 +8,10 @@ export class FileController {
   /**
    * Initialize file upload - create file record and get signed upload URL
    */
-  static async initUpload(req: AuthRequest, res: Response) {
+  static async initUpload(req: Request, res: Response) {
     try {
       const { filename, mimeType, size } = req.body;
-      const userId = req.user!.id;
+      const userId = ((req as any).user as { id: string; email: string; role: string })!.id;
 
       if (!filename || !mimeType || !size) {
         return res.status(400).json({ error: 'filename, mimeType, and size are required' });
@@ -65,10 +65,10 @@ export class FileController {
   /**
    * Get signed download URL for a file
    */
-  static async getSignedDownloadUrl(req: AuthRequest, res: Response) {
+  static async getSignedDownloadUrl(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const userId = req.user!.id;
+      const userId = ((req as any).user as { id: string; email: string; role: string })!.id;
       const { expiresIn = 3600 } = req.query;
 
       const file = await prisma.file.findUnique({
@@ -105,9 +105,9 @@ export class FileController {
   /**
    * List files for a user
    */
-  static async listFiles(req: AuthRequest, res: Response) {
+  static async listFiles(req: Request, res: Response) {
     try {
-      const userId = req.user!.id;
+      const userId = ((req as any).user as { id: string; email: string; role: string })!.id;
       const { visibility, limit = 50, offset = 0 } = req.query;
 
       const where: any = { ownerId: userId };
@@ -144,10 +144,10 @@ export class FileController {
   /**
    * Delete a file
    */
-  static async deleteFile(req: AuthRequest, res: Response) {
+  static async deleteFile(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const userId = req.user!.id;
+      const userId = ((req as any).user as { id: string; email: string; role: string })!.id;
 
       const file = await prisma.file.findUnique({
         where: { id },

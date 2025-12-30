@@ -8,9 +8,9 @@ export class CommentController {
   /**
    * 댓글 작성
    */
-  static async createComment(req: AuthRequest, res: Response) {
+  static async createComment(req: Request, res: Response) {
     try {
-      if (!req.user) {
+      if (!(req as any).user) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
@@ -23,7 +23,7 @@ export class CommentController {
       const comment = await CommentService.createComment({
         content,
         problemId,
-        authorId: req.user.id,
+        authorId: ((req as any).user as { id: string; email: string; role: string }).id,
         parentId,
       });
 
@@ -39,9 +39,9 @@ export class CommentController {
   /**
    * 댓글 수정
    */
-  static async updateComment(req: AuthRequest, res: Response) {
+  static async updateComment(req: Request, res: Response) {
     try {
-      if (!req.user) {
+      if (!(req as any).user) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
@@ -52,7 +52,7 @@ export class CommentController {
         return res.status(400).json({ error: 'Content is required' });
       }
 
-      const comment = await CommentService.updateComment(id, req.user.id, content);
+      const comment = await CommentService.updateComment(id, ((req as any).user as { id: string; email: string; role: string }).id, content);
       res.json({ comment });
     } catch (error: any) {
       if (error.message === 'Comment not found' || error.message === 'Not authorized to edit this comment') {
@@ -65,14 +65,14 @@ export class CommentController {
   /**
    * 댓글 삭제
    */
-  static async deleteComment(req: AuthRequest, res: Response) {
+  static async deleteComment(req: Request, res: Response) {
     try {
-      if (!req.user) {
+      if (!(req as any).user) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
       const { id } = req.params;
-      await CommentService.deleteComment(id, req.user.id);
+      await CommentService.deleteComment(id, ((req as any).user as { id: string; email: string; role: string }).id);
       res.json({ message: 'Comment deleted successfully' });
     } catch (error: any) {
       if (error.message === 'Comment not found' || error.message === 'Not authorized to delete this comment') {
@@ -85,7 +85,7 @@ export class CommentController {
   /**
    * 댓글 목록 조회
    */
-  static async getComments(req: AuthRequest, res: Response) {
+  static async getComments(req: Request, res: Response) {
     try {
       const { problemId } = req.params;
       const page = parseInt(req.query.page as string) || 1;
@@ -110,9 +110,9 @@ export class CommentController {
   /**
    * 댓글 좋아요/싫어요
    */
-  static async toggleLike(req: AuthRequest, res: Response) {
+  static async toggleLike(req: Request, res: Response) {
     try {
-      if (!req.user) {
+      if (!(req as any).user) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
@@ -123,7 +123,7 @@ export class CommentController {
         return res.status(400).json({ error: 'isLike must be a boolean' });
       }
 
-      const comment = await CommentService.toggleLike(id, req.user.id, isLike);
+      const comment = await CommentService.toggleLike(id, ((req as any).user as { id: string; email: string; role: string }).id, isLike);
       res.json({ comment });
     } catch (error: any) {
       if (error.message === 'Comment not found') {
@@ -136,14 +136,14 @@ export class CommentController {
   /**
    * 댓글 수정 이력 조회
    */
-  static async getEditHistory(req: AuthRequest, res: Response) {
+  static async getEditHistory(req: Request, res: Response) {
     try {
-      if (!req.user) {
+      if (!(req as any).user) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
       const { id } = req.params;
-      const history = await CommentService.getEditHistory(id, req.user.id);
+      const history = await CommentService.getEditHistory(id, ((req as any).user as { id: string; email: string; role: string }).id);
       res.json({ history });
     } catch (error: any) {
       if (error.message === 'Comment not found' || error.message === 'Not authorized to view edit history') {

@@ -6,7 +6,7 @@ export class UploadController {
   /**
    * PDF 파일 업로드
    */
-  static async uploadPdf(req: AuthRequest, res: Response) {
+  static async uploadPdf(req: Request, res: Response) {
     try {
       if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
@@ -34,7 +34,7 @@ export class UploadController {
   /**
    * 파일 삭제
    */
-  static async deleteFile(req: AuthRequest, res: Response) {
+  static async deleteFile(req: Request, res: Response) {
     try {
       const { url } = req.body;
 
