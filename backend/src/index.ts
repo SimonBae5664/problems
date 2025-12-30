@@ -8,6 +8,8 @@ import verificationRoutes from './routes/verification';
 import uploadRoutes from './routes/upload';
 import problemRoutes from './routes/problems';
 import commentRoutes from './routes/comments';
+import jobRoutes from './routes/jobs';
+import fileRoutes from './routes/files';
 
 dotenv.config();
 
@@ -30,6 +32,8 @@ app.use('/api/verification', verificationRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/problems', problemRoutes);
 app.use('/api/comments', commentRoutes);
+app.use('/api/jobs', jobRoutes);
+app.use('/api/files', fileRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Server is running' });

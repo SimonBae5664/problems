@@ -1,8 +1,7 @@
 import { Response } from 'express';
 import { VerificationService } from '../services/verification.service';
 import { AuthRequest } from '../middleware/auth';
-
-type VerificationType = 'UNIVERSITY' | 'HIGH_SCHOOL' | 'QUALIFICATION';
+import { VerificationType } from '@prisma/client';
 
 export class VerificationController {
   /**

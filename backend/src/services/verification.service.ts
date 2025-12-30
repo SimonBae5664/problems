@@ -1,8 +1,5 @@
-import prisma from '../utils/prisma';
-
-// SQLite에서는 enum이 String이므로 타입 정의
-type VerificationType = 'UNIVERSITY' | 'HIGH_SCHOOL' | 'QUALIFICATION';
-type VerificationStatus = 'PENDING' | 'VERIFIED' | 'REJECTED';
+import { prisma } from '../utils/prisma';
+import { VerificationType, VerificationStatus } from '@prisma/client';
 
 // 이메일 도메인 패턴 정의
 const UNIVERSITY_DOMAINS = [
@@ -26,14 +23,14 @@ export class VerificationService {
     // 대학 도메인 체크
     for (const pattern of UNIVERSITY_DOMAINS) {
       if (pattern.test(domain)) {
-        return 'UNIVERSITY' as VerificationType;
+        return VerificationType.UNIVERSITY;
       }
     }
 
     // 고등학교 도메인 체크
     for (const pattern of HIGH_SCHOOL_DOMAINS) {
       if (pattern.test(domain)) {
-        return 'HIGH_SCHOOL' as VerificationType;
+        return VerificationType.HIGH_SCHOOL;
       }
     }
 
@@ -63,7 +60,7 @@ export class VerificationService {
         userId,
         type,
         status: {
-          in: ['PENDING', 'VERIFIED'] as VerificationStatus[],
+          in: [VerificationStatus.PENDING, VerificationStatus.VERIFIED],
         },
       },
     });
@@ -79,7 +76,7 @@ export class VerificationService {
           userId,
           type,
           emailDomain,
-          status: 'VERIFIED' as VerificationStatus,
+          status: VerificationStatus.VERIFIED,
           verifiedAt: new Date(),
         },
       });
@@ -93,7 +90,7 @@ export class VerificationService {
         type,
         emailDomain: emailDomain || null,
         documentUrl: documentUrl || null,
-        status: 'PENDING' as VerificationStatus,
+        status: VerificationStatus.PENDING,
       },
     });
 
@@ -146,7 +143,7 @@ export class VerificationService {
     const verification = await prisma.verification.update({
       where: { id: verificationId },
       data: {
-        status: 'REJECTED' as VerificationStatus,
+        status: VerificationStatus.REJECTED,
         rejectedAt: new Date(),
         rejectionReason: reason,
       },
@@ -187,7 +184,7 @@ export class VerificationService {
    */
   static async getPendingVerifications() {
     return await prisma.verification.findMany({
-      where: { status: 'PENDING' as VerificationStatus },
+      where: { status: VerificationStatus.PENDING },
       include: {
         user: {
           select: {

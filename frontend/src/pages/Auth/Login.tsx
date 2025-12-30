@@ -20,18 +20,16 @@ export default function Login() {
       await login(email, password);
       navigate('/');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Login failed');
+      const errorMessage = err.response?.data?.error || 'Login failed';
+      setError(errorMessage);
+      
+      // 이메일 인증 관련 에러인 경우 추가 안내
+      if (errorMessage.includes('이메일 인증')) {
+        setError(`${errorMessage} 이메일을 확인하시거나 인증 이메일을 재발송해주세요.`);
+      }
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleGoogleLogin = () => {
-    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/google`;
-  };
-
-  const handleKakaoLogin = () => {
-    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/kakao`;
   };
 
   return (
@@ -64,15 +62,6 @@ export default function Login() {
             {loading ? '로그인 중...' : '로그인'}
           </button>
         </form>
-
-        <div className="oauth-buttons">
-          <button onClick={handleGoogleLogin} className="btn-google">
-            구글로 로그인
-          </button>
-          <button onClick={handleKakaoLogin} className="btn-kakao">
-            카카오로 로그인
-          </button>
-        </div>
 
         <p className="auth-link">
           계정이 없으신가요? <Link to="/register">회원가입</Link>

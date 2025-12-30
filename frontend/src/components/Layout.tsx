@@ -28,6 +28,7 @@ export default function Layout({ children }: LayoutProps) {
               <>
                 <Link to="/submit">문제 제출</Link>
                 <Link to="/my-problems">내 문제</Link>
+                <Link to="/files">내 파일</Link>
                 {user?.role === 'ADMIN' && (
                   <Link to="/admin">운영진</Link>
                 )}

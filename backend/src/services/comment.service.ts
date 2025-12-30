@@ -1,5 +1,6 @@
-import prisma from '../utils/prisma';
+import { prisma } from '../utils/prisma';
 
+// CommentSortOrder는 Prisma enum이지만 타입으로만 사용
 type CommentSortOrder = 'NEWEST' | 'OLDEST' | 'MOST_LIKED';
 
 export interface CreateCommentData {
@@ -157,7 +158,7 @@ export class CommentService {
     problemId: string,
     page: number = 1,
     limit: number = 50,
-    sortOrder: CommentSortOrder = CommentSortOrder.NEWEST,
+    sortOrder: CommentSortOrder = 'NEWEST',
     includeReplies: boolean = true
   ) {
     const skip = (page - 1) * limit;
@@ -165,14 +166,17 @@ export class CommentService {
     // 정렬 옵션
     let orderBy: any = {};
     switch (sortOrder) {
-      case CommentSortOrder.NEWEST:
+      case 'NEWEST':
         orderBy = { createdAt: 'desc' };
         break;
-      case CommentSortOrder.OLDEST:
+      case 'OLDEST':
         orderBy = { createdAt: 'asc' };
         break;
-      case CommentSortOrder.MOST_LIKED:
+      case 'MOST_LIKED':
         orderBy = { likeCount: 'desc' };
+        break;
+      default:
+        orderBy = { createdAt: 'desc' };
         break;
     }
 

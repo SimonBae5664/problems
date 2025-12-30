@@ -61,3 +61,41 @@ export interface Verification {
   createdAt: string;
 }
 
+export interface File {
+  id: string;
+  ownerId: string;
+  storagePath: string;
+  originalFilename: string;
+  mimeType: string;
+  fileExt: string;
+  size: number;
+  visibility: 'PRIVATE' | 'SHARED' | 'PUBLIC';
+  createdAt: string;
+  updatedAt: string;
+  processingJobs?: ProcessingJob[];
+}
+
+export interface ProcessingJob {
+  id: string;
+  fileId: string;
+  ownerId: string;
+  jobType: 'EXTRACT' | 'OCR' | 'CLASSIFY' | 'EMBED' | 'SUMMARIZE' | 'STUDENT_RECORD_ANALYZE';
+  status: 'QUEUED' | 'PROCESSING' | 'SUCCEEDED' | 'FAILED';
+  attempts: number;
+  error?: string;
+  startedAt?: string;
+  finishedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  outputs?: JobOutput[];
+}
+
+export interface JobOutput {
+  id: string;
+  jobId: string;
+  outputType: 'TEXT' | 'JSON' | 'THUMB' | 'EMBEDDING';
+  storagePath: string;
+  meta?: any;
+  createdAt: string;
+}
+

@@ -1,10 +1,6 @@
-import prisma from '../utils/prisma';
+import { prisma } from '../utils/prisma';
 import { VerificationService } from './verification.service';
-
-// SQLite에서는 enum이 String이므로 타입 정의
-type ProblemStatus = 'PENDING' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED';
-type Subject = 'KOREAN' | 'MATH' | 'ENGLISH' | 'KOREAN_HISTORY' | 'SOCIAL_STUDIES' | 'SCIENCE' | 'SECOND_LANGUAGE';
-type Difficulty = 'EASY' | 'MEDIUM' | 'HARD';
+import { ProblemStatus, Subject, Difficulty } from '@prisma/client';
 
 export interface CreateProblemData {
   title: string;
@@ -34,7 +30,7 @@ export class ProblemService {
         subject: data.subject,
         difficulty: data.difficulty,
         pdfUrl: data.pdfUrl,
-        status: 'PENDING' as ProblemStatus,
+        status: ProblemStatus.PENDING,
         submittedById: data.submittedById,
       },
       include: {
@@ -53,7 +49,7 @@ export class ProblemService {
       data: {
         problemId: problem.id,
         submittedById: data.submittedById,
-        status: 'PENDING' as ProblemStatus,
+        status: ProblemStatus.PENDING,
       },
     });
 
@@ -72,7 +68,7 @@ export class ProblemService {
     const skip = (page - 1) * limit;
 
     const where: any = {
-      status: 'APPROVED' as ProblemStatus,
+      status: ProblemStatus.APPROVED,
     };
 
     if (subject) {
@@ -150,7 +146,7 @@ export class ProblemService {
     }
 
     // 공개되지 않은 문제는 작성자나 운영진만 볼 수 있음
-    if (problem.status !== 'APPROVED' && !includeUnpublished) {
+    if (problem.status !== ProblemStatus.APPROVED && !includeUnpublished) {
       throw new Error('Problem not found or not published');
     }
 
@@ -201,7 +197,7 @@ export class ProblemService {
       prisma.problem.findMany({
         where: {
           status: {
-            in: ['PENDING', 'UNDER_REVIEW'] as ProblemStatus[],
+            in: [ProblemStatus.PENDING, ProblemStatus.UNDER_REVIEW],
           },
         },
         skip,
@@ -220,7 +216,7 @@ export class ProblemService {
       prisma.problem.count({
         where: {
           status: {
-            in: ['PENDING', 'UNDER_REVIEW'] as ProblemStatus[],
+            in: [ProblemStatus.PENDING, ProblemStatus.UNDER_REVIEW],
           },
         },
       }),
@@ -244,7 +240,7 @@ export class ProblemService {
     const problem = await prisma.problem.update({
       where: { id: problemId },
       data: {
-        status: 'APPROVED' as ProblemStatus,
+        status: ProblemStatus.APPROVED,
         reviewedById: adminId,
         reviewedAt: new Date(),
       },
@@ -279,7 +275,7 @@ export class ProblemService {
     const problem = await prisma.problem.update({
       where: { id: problemId },
       data: {
-        status: 'REJECTED' as ProblemStatus,
+        status: ProblemStatus.REJECTED,
         reviewedById: adminId,
         reviewedAt: new Date(),
         rejectionReason: reason,
@@ -311,7 +307,7 @@ export class ProblemService {
     const problem = await prisma.problem.update({
       where: { id: problemId },
       data: {
-        status: 'UNDER_REVIEW' as ProblemStatus,
+        status: ProblemStatus.UNDER_REVIEW,
         reviewedById: adminId,
       },
     });

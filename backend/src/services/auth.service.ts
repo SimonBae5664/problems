@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import prisma from '../utils/prisma';
+import { prisma } from '../utils/prisma';
 import { User } from '@prisma/client';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'default-secret';
@@ -31,14 +31,25 @@ export class AuthService {
         email,
         password: hashedPassword,
         name,
+        emailVerified: false, // 이메일 인증 전까지 false
       },
     });
 
-    // 자동 인증 시도
+    // 이메일 인증 코드 생성 및 이메일 발송
+    try {
+      const { EmailService } = await import('./email.service');
+      const verificationCode = await EmailService.createVerificationCode(user.id);
+      await EmailService.sendVerificationEmail(email, name, verificationCode);
+    } catch (error) {
+      console.error('이메일 발송 실패:', error);
+      // 이메일 발송 실패해도 사용자는 생성됨 (나중에 재발송 가능)
+    }
+
+    // 자동 인증 시도 (신원 인증)
     const { VerificationService } = await import('./verification.service');
     await VerificationService.autoVerifyUser(user.id, email);
 
-    // Generate token
+    // Generate JWT token
     const token = this.generateToken(user.id);
 
     // Remove password from user object
@@ -56,13 +67,8 @@ export class AuthService {
       where: { email },
     });
 
-    if (!user) {
+    if (!user || !user.password) {
       throw new Error('Invalid credentials');
-    }
-
-    // Check if user has password (OAuth users might not have password)
-    if (!user.password) {
-      throw new Error('Please use OAuth to login');
     }
 
     // Verify password
@@ -71,59 +77,11 @@ export class AuthService {
       throw new Error('Invalid credentials');
     }
 
-    // Generate token
-    const token = this.generateToken(user.id);
-
-    // Remove password from user object
-    const { password: _, ...userWithoutPassword } = user;
-
-    return {
-      user: userWithoutPassword,
-      token,
-    };
-  }
-
-  static async findOrCreateOAuthUser(
-    provider: 'google' | 'kakao',
-    providerId: string,
-    email: string,
-    name: string
-  ): Promise<AuthResult> {
-    const field = provider === 'google' ? 'googleId' : 'kakaoId';
-
-    // Try to find existing user by provider ID
-    let user = await prisma.user.findUnique({
-      where: { [field]: providerId },
-    });
-
-    if (!user) {
-      // Try to find by email
-      user = await prisma.user.findUnique({
-        where: { email },
-      });
-
-      if (user) {
-        // Update existing user with provider ID
-        user = await prisma.user.update({
-          where: { id: user.id },
-          data: { [field]: providerId },
-        });
-      } else {
-        // Create new user
-        user = await prisma.user.create({
-          data: {
-            email,
-            name,
-            [field]: providerId,
-          },
-        });
-      }
+    // 이메일 인증 여부 확인
+    if (!user.emailVerified) {
+      throw new Error('이메일 인증이 완료되지 않았습니다. 이메일을 확인해주세요.');
     }
 
-    // 자동 인증 시도
-    const { VerificationService } = await import('./verification.service');
-    await VerificationService.autoVerifyUser(user.id, email);
-
     // Generate token
     const token = this.generateToken(user.id);
 
@@ -135,6 +93,7 @@ export class AuthService {
       token,
     };
   }
+
 
   static generateToken(userId: string): string {
     return jwt.sign({ userId }, JWT_SECRET, {

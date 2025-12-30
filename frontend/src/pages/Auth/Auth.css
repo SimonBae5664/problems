@@ -47,6 +47,15 @@
   border-color: #667eea;
 }
 
+.code-input {
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.code-input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
 .form-group small {
   display: block;
   margin-top: 5px;

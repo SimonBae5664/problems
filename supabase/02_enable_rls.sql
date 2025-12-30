@@ -1,0 +1,14 @@
+-- Enable Row Level Security on all tables
+
+ALTER TABLE "File" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "ProcessingJob" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "JobOutput" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "UserActivity" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "StudentRecord" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Problem" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Comment" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "Post" ENABLE ROW LEVEL SECURITY IF EXISTS;
+
+-- Note: User, Verification, ProblemSubmission, CommentLike, etc. 
+-- can also have RLS enabled if needed
+

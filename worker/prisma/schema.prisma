@@ -1,0 +1,19 @@
+// Worker uses the same schema as backend
+// This is a symlink or copy of backend/prisma/schema.prisma
+// For Docker builds, we'll copy the schema from backend
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// Note: The full schema is in backend/prisma/schema.prisma
+// This file is a placeholder. In production, copy the schema from backend/prisma/schema.prisma
+// or use a shared schema location.
+

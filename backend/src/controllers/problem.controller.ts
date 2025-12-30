@@ -1,9 +1,7 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import { ProblemService } from '../services/problem.service';
-
-type Subject = 'KOREAN' | 'MATH' | 'ENGLISH' | 'KOREAN_HISTORY' | 'SOCIAL_STUDIES' | 'SCIENCE' | 'SECOND_LANGUAGE';
-type Difficulty = 'EASY' | 'MEDIUM' | 'HARD';
+import { Subject, Difficulty } from '@prisma/client';
 
 export class ProblemController {
   /**

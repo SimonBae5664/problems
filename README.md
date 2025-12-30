@@ -22,11 +22,34 @@ problems/
 
 ## 시작하기
 
-### 1. Supabase 설정
+### 방법 1: Docker로 실행 (권장)
+
+Docker가 설치되어 있다면 가장 간단한 방법입니다:
+
+1. **환경 변수 설정**
+   - 프로젝트 루트에 `.env` 파일 생성
+   - [DOCKER_SETUP.md](./DOCKER_SETUP.md) 참조하여 필수 변수 설정
+
+2. **실행**
+   ```bash
+   ./docker-start.sh
+   # 또는
+   docker-compose up -d --build
+   ```
+
+3. **접속**
+   - Frontend: http://localhost:3000
+   - Backend: http://localhost:5000
+
+자세한 내용은 [DOCKER_SETUP.md](./DOCKER_SETUP.md)를 참조하세요.
+
+### 방법 2: 로컬에서 직접 실행
+
+#### 1. Supabase 설정
 
 먼저 Supabase 프로젝트를 생성하고 연결 정보를 가져오세요. 자세한 내용은 [SUPABASE_SETUP.md](./SUPABASE_SETUP.md)를 참조하세요.
 
-### 2. Backend 설정
+#### 2. Backend 설정
 
 ```bash
 cd backend
@@ -38,7 +61,7 @@ npm run prisma:migrate
 npm run dev
 ```
 
-### 3. Frontend 설정
+#### 3. Frontend 설정
 
 ```bash
 cd frontend
@@ -46,6 +69,8 @@ npm install
 cp .env.example .env
 npm run dev
 ```
+
+자세한 내용은 [SETUP.md](./SETUP.md)를 참조하세요.
 
 ## 환경 변수
 
@@ -60,6 +85,8 @@ npm run dev
 
 자세한 내용은 `backend/.env.example` 파일을 참조하세요.
 
+**OAuth 설정**: Google 및 Kakao OAuth 로그인을 사용하려면 [OAUTH_SETUP.md](./OAUTH_SETUP.md)를 참조하세요.
+
 ### Frontend (.env)
 
 ```
@@ -68,15 +95,15 @@ VITE_API_URL=http://localhost:5000
 
 ## 배포
 
-### Supabase
+프로덕션 환경에 배포하는 방법은 [DEPLOYMENT.md](./DEPLOYMENT.md)를 참조하세요.
 
-데이터베이스는 Supabase에서 자동으로 관리됩니다.
+### 빠른 배포 옵션
 
-### Vercel / Netlify (Frontend)
+- **Frontend**: [Vercel](https://vercel.com) (무료, 자동 HTTPS)
+- **Backend**: [Railway](https://railway.app) 또는 [Render](https://render.com) (무료 플랜 제공)
+- **Database**: Supabase (이미 사용 중)
 
-Frontend는 Vercel이나 Netlify에 배포할 수 있습니다.
+### Docker 배포
 
-### Railway / Render (Backend)
-
-Backend는 Railway나 Render에 배포할 수 있습니다.
+Docker를 사용한 배포도 지원합니다. 자세한 내용은 [DEPLOYMENT.md](./DEPLOYMENT.md)를 참조하세요.
 

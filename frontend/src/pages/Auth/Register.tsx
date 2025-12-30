@@ -9,6 +9,7 @@ export default function Register() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -16,6 +17,7 @@ export default function Register() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess(false);
 
     if (password !== confirmPassword) {
       setError('비밀번호가 일치하지 않습니다');
@@ -31,20 +33,16 @@ export default function Register() {
 
     try {
       await register(email, password, name);
-      navigate('/');
+      setSuccess(true);
+      // 이메일 인증 코드 입력 페이지로 리다이렉트
+      setTimeout(() => {
+        navigate(`/verify-email?email=${encodeURIComponent(email)}`);
+      }, 2000);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Registration failed');
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleGoogleLogin = () => {
-    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/google`;
-  };
-
-  const handleKakaoLogin = () => {
-    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/kakao`;
   };
 
   return (
@@ -95,23 +93,32 @@ export default function Register() {
             />
           </div>
           {error && <div className="error-message">{error}</div>}
-          <button type="submit" disabled={loading} className="btn-primary">
-            {loading ? '가입 중...' : '회원가입'}
+          {success && (
+            <div style={{ 
+              padding: '15px', 
+              backgroundColor: '#e8f5e9', 
+              borderRadius: '5px', 
+              marginBottom: '15px',
+              color: '#2e7d32'
+            }}>
+              <strong>회원가입이 완료되었습니다!</strong>
+              <p style={{ margin: '10px 0 0 0', fontSize: '14px' }}>
+                이메일로 인증 코드를 발송했습니다. 이메일을 확인하여 인증을 완료해주세요.
+                <br />
+                잠시 후 인증 페이지로 이동합니다...
+              </p>
+            </div>
+          )}
+          <button type="submit" disabled={loading || success} className="btn-primary">
+            {loading ? '가입 중...' : success ? '가입 완료' : '회원가입'}
           </button>
         </form>
 
-        <div className="oauth-buttons">
-          <button onClick={handleGoogleLogin} className="btn-google">
-            구글로 가입
-          </button>
-          <button onClick={handleKakaoLogin} className="btn-kakao">
-            카카오로 가입
-          </button>
-        </div>
-
-        <p className="auth-link">
-          이미 계정이 있으신가요? <Link to="/login">로그인</Link>
-        </p>
+        {!success && (
+          <p className="auth-link">
+            이미 계정이 있으신가요? <Link to="/login">로그인</Link>
+          </p>
+        )}
       </div>
     </div>
   );

@@ -42,5 +42,25 @@ export const authService = {
     localStorage.setItem('token', authResponse.token);
     localStorage.setItem('user', JSON.stringify(authResponse.user));
   },
+
+  async verifyCode(code: string, email: string): Promise<{ message: string }> {
+    const response = await api.post<{ message: string }>('/api/auth/verify-code', {
+      code,
+      email,
+    });
+    return response.data;
+  },
+
+  async resendVerificationEmail(): Promise<{ message: string }> {
+    const response = await api.post<{ message: string }>('/api/auth/resend-verification');
+    return response.data;
+  },
+
+  async resendVerificationEmailByEmail(email: string): Promise<{ message: string }> {
+    const response = await api.post<{ message: string }>('/api/auth/resend-verification-by-email', {
+      email,
+    });
+    return response.data;
+  },
 };
 

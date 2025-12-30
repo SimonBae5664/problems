@@ -1,13 +1,165 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id                 String              @id @default(uuid())
+  email              String              @unique
+  password           String?
+  name               String
+  role               UserRole            @default(USER)
+  emailVerified      Boolean             @default(false)
+  emailVerifiedAt    DateTime?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  googleId           String?             @unique
+  kakaoId            String?             @unique
+  comments           Comment[]
+  commentLikes       CommentLike[]
+  emailVerifications EmailVerification[]
+  reviewedProblems   Problem[]           @relation("ReviewedProblems")
+  problems           Problem[]
+  submissions        ProblemSubmission[] @relation("ProblemSubmissions")
+  verifications      Verification[]
+  files              File[]
+  processingJobs     ProcessingJob[]
+  userActivities     UserActivity[]
+  studentRecords     StudentRecord[]
+
+  @@index([email])
+}
+
+model Verification {
+  id              String             @id @default(uuid())
+  userId          String
+  type            VerificationType
+  status          VerificationStatus @default(PENDING)
+  emailDomain     String?
+  documentUrl     String?
+  verifiedAt      DateTime?
+  rejectedAt      DateTime?
+  rejectionReason String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Problem {
+  id                String             @id @default(uuid())
+  title             String
+  description       String?
+  subject           Subject
+  difficulty        Difficulty?
+  pdfUrl            String
+  status            ProblemStatus      @default(PENDING)
+  submittedById     String
+  reviewedById      String?
+  reviewedAt        DateTime?
+  rejectionReason   String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  fileId            String?            // Reference to File
+  unit              String?            // 단원
+  tags              Json?              // JSONB for tags
+  extractedTextPath String?            // Path to extracted text in derivatives bucket
+  thumbnailPath     String?            // Path to thumbnail in derivatives bucket
+  comments          Comment[]
+  reviewedBy        User?              @relation("ReviewedProblems", fields: [reviewedById], references: [id])
+  submittedBy       User               @relation(fields: [submittedById], references: [id])
+  submission        ProblemSubmission?
+  file              File?              @relation(fields: [fileId], references: [id])
+  userActivities    UserActivity[]
+
+  @@index([status])
+  @@index([subject])
+  @@index([submittedById])
+  @@index([fileId])
+}
+
+model ProblemSubmission {
+  id            String        @id @default(uuid())
+  problemId     String        @unique
+  submittedById String
+  status        ProblemStatus @default(PENDING)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  problem       Problem       @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  submittedBy   User          @relation("ProblemSubmissions", fields: [submittedById], references: [id])
+
+  @@index([status])
+  @@index([submittedById])
+}
+
+model Comment {
+  id           String               @id @default(uuid())
+  content      String
+  problemId    String
+  authorId     String
+  parentId     String?
+  likeCount    Int                  @default(0)
+  dislikeCount Int                  @default(0)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  deletedAt    DateTime?
+  author       User                 @relation(fields: [authorId], references: [id])
+  parent       Comment?             @relation("CommentReplies", fields: [parentId], references: [id])
+  replies      Comment[]            @relation("CommentReplies")
+  problem      Problem              @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  editHistory  CommentEditHistory[]
+  likes        CommentLike[]
+
+  @@index([problemId])
+  @@index([authorId])
+  @@index([parentId])
+}
+
+model CommentEditHistory {
+  id        String   @id @default(uuid())
+  commentId String
+  content   String
+  editedAt  DateTime @default(now())
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@index([commentId])
+}
+
+model CommentLike {
+  id        String   @id @default(uuid())
+  commentId String
+  userId    String
+  isLike    Boolean
+  createdAt DateTime @default(now())
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([commentId, userId])
+  @@index([commentId])
+  @@index([userId])
+}
+
+model EmailVerification {
+  id         String    @id @default(uuid())
+  userId     String
+  code       String    @unique
+  expiresAt  DateTime
+  verifiedAt DateTime?
+  attempts   Int       @default(0)
+  createdAt  DateTime  @default(now())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([code])
+  @@index([expiresAt])
+  @@index([userId, createdAt(sort: Desc)])
 }
 
 enum UserRole {
@@ -56,136 +208,138 @@ enum CommentSortOrder {
   MOST_LIKED
 }
 
-model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
-  password      String?
-  name          String
-  role          UserRole  @default(USER)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  // OAuth fields
-  googleId      String?   @unique
-  kakaoId       String?   @unique
-
-  // Relations
-  verifications Verification[]
-  problems      Problem[]
-  reviewedProblems Problem[] @relation("ReviewedProblems")
-  comments      Comment[]
-  commentLikes  CommentLike[]
-  submissions   ProblemSubmission[] @relation("ProblemSubmissions")
-
-  @@index([email])
+enum FileVisibility {
+  PRIVATE
+  SHARED
+  PUBLIC
 }
 
-model Verification {
-  id            String            @id @default(uuid())
-  userId        String
-  type          VerificationType
-  status        VerificationStatus @default(PENDING)
-  emailDomain   String?           // 이메일 도메인 (예: @university.ac.kr)
-  documentUrl   String?           // 증명서류 URL (자격증의 경우)
-  verifiedAt    DateTime?
-  rejectedAt    DateTime?
-  rejectionReason String?
-  createdAt     DateTime          @default(now())
-  updatedAt     DateTime          @updatedAt
+enum JobType {
+  EXTRACT
+  OCR
+  CLASSIFY
+  EMBED
+  SUMMARIZE
+  STUDENT_RECORD_ANALYZE
+}
 
-  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+enum JobStatus {
+  QUEUED
+  PROCESSING
+  SUCCEEDED
+  FAILED
+}
+
+enum OutputType {
+  TEXT
+  JSON
+  THUMB
+  EMBEDDING
+}
+
+enum UserActivityAction {
+  VIEW
+  BOOKMARK
+  SOLVE
+  LIKE
+}
+
+enum RetentionPolicy {
+  DELETE_IMMEDIATELY
+  DELETE_AFTER_24H
+  KEEP
+}
+
+// File metadata table
+model File {
+  id              String          @id @default(uuid())
+  ownerId         String
+  storagePath     String          // Path in Supabase Storage (uploads bucket)
+  originalFilename String
+  mimeType        String
+  fileExt         String
+  size            Int             // Size in bytes
+  visibility      FileVisibility  @default(PRIVATE)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  owner           User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  problems        Problem[]
+  processingJobs  ProcessingJob[]
+
+  @@index([ownerId])
+  @@index([visibility])
+  @@index([createdAt])
+}
+
+// Processing jobs queue table
+model ProcessingJob {
+  id          String      @id @default(uuid())
+  fileId      String
+  ownerId     String
+  jobType     JobType
+  status      JobStatus   @default(QUEUED)
+  attempts    Int         @default(0)
+  error       String?
+  lockedAt    DateTime?   // For DB locking mechanism
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  file        File        @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  owner       User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  outputs     JobOutput[]
+
+  @@index([status])
+  @@index([fileId])
+  @@index([ownerId])
+  @@index([createdAt])
+  @@index([status, createdAt]) // For efficient polling
+}
+
+// Job outputs/results table
+model JobOutput {
+  id          String      @id @default(uuid())
+  jobId       String
+  outputType  OutputType
+  storagePath String      // Path in Supabase Storage (derivatives bucket)
+  meta        Json?       // Additional metadata (JSONB)
+  createdAt   DateTime    @default(now())
+  job         ProcessingJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@index([outputType])
+}
+
+// User activity tracking
+model UserActivity {
+  id        String            @id @default(uuid())
+  userId    String
+  problemId String?
+  action    UserActivityAction
+  meta      Json?             // Additional metadata
+  createdAt DateTime          @default(now())
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problem   Problem?          @relation(fields: [problemId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@index([status])
-}
-
-model Problem {
-  id            String    @id @default(uuid())
-  title         String
-  description   String?
-  subject       Subject
-  difficulty    Difficulty?
-  pdfUrl        String    // 클라우드 스토리지 URL
-  status        ProblemStatus @default(PENDING)
-  submittedById String
-  reviewedById  String?   // 운영진 ID
-  reviewedAt    DateTime?
-  rejectionReason String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  submittedBy   User              @relation(fields: [submittedById], references: [id])
-  reviewedBy    User?             @relation("ReviewedProblems", fields: [reviewedById], references: [id])
-  comments      Comment[]
-  submission    ProblemSubmission?
-
-  @@index([status])
-  @@index([subject])
-  @@index([submittedById])
-}
-
-model ProblemSubmission {
-  id            String    @id @default(uuid())
-  problemId     String    @unique
-  submittedById String
-  status        ProblemStatus @default(PENDING)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  problem       Problem   @relation(fields: [problemId], references: [id], onDelete: Cascade)
-  submittedBy   User      @relation("ProblemSubmissions", fields: [submittedById], references: [id])
-
-  @@index([status])
-  @@index([submittedById])
-}
-
-model Comment {
-  id            String    @id @default(uuid())
-  content       String
-  problemId     String
-  authorId      String
-  parentId      String?   // 대댓글을 위한 부모 댓글 ID
-  likeCount     Int       @default(0)
-  dislikeCount  Int       @default(0)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  deletedAt     DateTime? // 소프트 삭제
-
-  problem       Problem   @relation(fields: [problemId], references: [id], onDelete: Cascade)
-  author        User      @relation(fields: [authorId], references: [id])
-  parent        Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
-  replies       Comment[] @relation("CommentReplies")
-  likes         CommentLike[]
-  editHistory   CommentEditHistory[]
-
   @@index([problemId])
-  @@index([authorId])
-  @@index([parentId])
+  @@index([action])
+  @@index([createdAt])
 }
 
-model CommentEditHistory {
-  id            String    @id @default(uuid())
-  commentId     String
-  content       String    // 수정 전 내용
-  editedAt      DateTime  @default(now())
+// Student records (생기부 분석 결과)
+model StudentRecord {
+  id              String          @id @default(uuid())
+  ownerId         String
+  fileId          String?          // Reference to uploaded file
+  status          JobStatus       @default(QUEUED)
+  resultPath      String?         // Path to analysis result in derivatives bucket
+  retentionPolicy RetentionPolicy @default(DELETE_AFTER_24H)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  owner           User            @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
-  comment       Comment   @relation(fields: [commentId], references: [id], onDelete: Cascade)
-
-  @@index([commentId])
+  @@index([ownerId])
+  @@index([status])
+  @@index([createdAt])
 }
-
-model CommentLike {
-  id            String    @id @default(uuid())
-  commentId     String
-  userId        String
-  isLike        Boolean   // true: 좋아요, false: 싫어요
-  createdAt     DateTime  @default(now())
-
-  comment       Comment   @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([commentId, userId])
-  @@index([commentId])
-  @@index([userId])
-}
-

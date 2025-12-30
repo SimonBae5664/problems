@@ -3,16 +3,20 @@
 ## 사전 준비사항
 
 1. **Node.js** (v18 이상)
-2. **PostgreSQL** 데이터베이스
+2. **Supabase 계정** (무료 플랜 사용 가능)
 3. **npm** 또는 **yarn**
 
 ## 빠른 시작
 
-### 1. 환경 변수 설정
+### 1. Supabase 프로젝트 설정
+
+먼저 Supabase 프로젝트를 생성하고 연결 정보를 가져오세요. 자세한 내용은 [SUPABASE_SETUP.md](./SUPABASE_SETUP.md)를 참조하세요.
+
+### 2. 환경 변수 설정
 
 **Backend** (`backend/.env` 파일 생성):
 ```env
-DATABASE_URL=postgresql://user:password@localhost:5432/problems_db
+DATABASE_URL=postgresql://postgres:[YOUR-PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres
 JWT_SECRET=dev-secret-key-change-in-production-12345
 JWT_EXPIRES_IN=7d
 PORT=5000
@@ -23,16 +27,6 @@ FRONTEND_URL=http://localhost:3000
 **Frontend** (`frontend/.env` 파일 생성):
 ```env
 VITE_API_URL=http://localhost:5000
-```
-
-### 2. PostgreSQL 데이터베이스 생성
-
-```bash
-# PostgreSQL 접속
-psql -U postgres
-
-# 데이터베이스 생성
-CREATE DATABASE problems_db;
 ```
 
 ### 3. 데이터베이스 마이그레이션
@@ -66,13 +60,7 @@ npm run dev
 ## 첫 관리자 계정 생성
 
 1. 웹사이트에서 회원가입
-2. PostgreSQL에서 사용자 role을 ADMIN으로 변경:
-
-```sql
-UPDATE "User" SET role = 'ADMIN' WHERE email = 'your-email@example.com';
-```
-
-또는 Prisma Studio 사용:
+2. Prisma Studio 사용:
 ```bash
 cd backend
 npm run prisma:studio
