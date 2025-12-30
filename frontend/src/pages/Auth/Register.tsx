@@ -32,6 +32,7 @@ export default function Register() {
     setLoading(true);
 
     try {
+      console.log('회원가입 시도:', { email, name });
       await register(email, password, name);
       setSuccess(true);
       // 이메일 인증 코드 입력 페이지로 리다이렉트
@@ -39,7 +40,28 @@ export default function Register() {
         navigate(`/verify-email?email=${encodeURIComponent(email)}`);
       }, 2000);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Registration failed');
+      console.error('회원가입 에러:', err);
+      console.error('에러 응답:', err.response);
+      console.error('에러 요청 URL:', err.config?.url);
+      
+      let errorMessage = '회원가입에 실패했습니다.';
+      
+      if (err.response) {
+        // 서버에서 반환한 에러
+        errorMessage = err.response.data?.error || err.response.data?.message || errorMessage;
+      } else if (err.request) {
+        // 요청은 보냈지만 응답을 받지 못함 (네트워크 에러)
+        if (err.message?.includes('hostname') || err.message?.includes('could not be found')) {
+          errorMessage = '서버를 찾을 수 없습니다. API URL 설정을 확인해주세요.';
+        } else {
+          errorMessage = '서버에 연결할 수 없습니다. 네트워크를 확인해주세요.';
+        }
+      } else {
+        // 요청 설정 중 에러
+        errorMessage = err.message || errorMessage;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

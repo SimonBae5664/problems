@@ -41,10 +41,15 @@ export class EmailService {
       if (result && result.length > 0 && result[0].create_verification_code) {
         return result[0].create_verification_code;
       }
+      
+      // 결과가 없으면 폴백 사용
+      console.warn('PostgreSQL function returned no result, using fallback');
     } catch (error: any) {
       console.warn('PostgreSQL function not available, using fallback:', error.message);
-      
-      // PostgreSQL 함수가 없을 경우 폴백: 기존 방식 사용
+    }
+    
+    // PostgreSQL 함수가 없거나 실패한 경우 폴백: 기존 방식 사용
+    try {
       // 재전송 제한 확인
       const canResend = await this.checkResendLimitFallback(userId);
       if (!canResend) {
@@ -65,9 +70,10 @@ export class EmailService {
       });
 
       return code;
+    } catch (error: any) {
+      console.error('폴백 인증 코드 생성 실패:', error);
+      throw new Error(`인증 코드 생성에 실패했습니다: ${error.message || '알 수 없는 오류'}`);
     }
-    
-    throw new Error('인증 코드 생성에 실패했습니다.');
   }
 
   /**
@@ -79,11 +85,16 @@ export class EmailService {
         SELECT check_resend_limit(${userId}::TEXT) as check_resend_limit
       `;
       
-      if (result && result.length > 0) {
+      if (result && result.length > 0 && typeof result[0].check_resend_limit === 'boolean') {
         return result[0].check_resend_limit;
       }
     } catch (error) {
       // 함수가 없으면 직접 계산
+      console.warn('PostgreSQL check_resend_limit function not available, using fallback calculation');
+    }
+    
+    // 직접 계산 (함수가 없거나 결과가 없는 경우)
+    try {
       const fiveMinutesAgo = new Date();
       fiveMinutesAgo.setMinutes(fiveMinutesAgo.getMinutes() - 5);
 
@@ -97,9 +108,11 @@ export class EmailService {
       });
 
       return recentResends < 3;
+    } catch (error: any) {
+      console.error('재전송 제한 확인 실패:', error);
+      // 에러 발생 시 기본적으로 허용 (새 사용자 등록의 경우 문제 없음)
+      return true;
     }
-    
-    return false;
   }
 
   /**

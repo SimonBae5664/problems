@@ -7,24 +7,53 @@ export class AuthController {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() });
+        return res.status(400).json({ 
+          error: '입력값 검증 실패',
+          details: errors.array() 
+        });
       }
 
       const { email, password, name } = req.body;
+
+      // 필수 필드 확인
+      if (!email || !password || !name) {
+        return res.status(400).json({ 
+          error: '이메일, 비밀번호, 이름은 필수입니다.' 
+        });
+      }
 
       const result = await AuthService.register(email, password, name);
 
       res.status(201).json(result);
     } catch (error: any) {
-      console.error('Registration error:', error); // 에러 로깅 추가
+      console.error('Registration error:', error);
+      console.error('Error stack:', error.stack);
       
-      if (error.message === 'User already exists') {
-        return res.status(409).json({ error: error.message });
+      // 이미 존재하는 사용자
+      if (error.message === 'User already exists' || error.message.includes('이미 존재하는')) {
+        return res.status(409).json({ error: '이미 등록된 이메일입니다.' });
       }
       
-      // PostgreSQL 함수 에러 메시지 전달
-      const errorMessage = error.message || error.meta?.message || 'Registration failed';
-      res.status(500).json({ error: errorMessage });
+      // 입력값 검증 에러
+      if (error.message?.includes('입력값 검증')) {
+        return res.status(400).json({ error: error.message });
+      }
+      
+      // 토큰 생성 실패
+      if (error.message?.includes('토큰 생성 실패')) {
+        return res.status(500).json({ 
+          error: '서버 설정 오류가 발생했습니다. 관리자에게 문의하세요.' 
+        });
+      }
+      
+      // 기타 에러 - 상세 메시지 전달
+      const errorMessage = error.message || error.meta?.message || '회원가입에 실패했습니다.';
+      res.status(500).json({ 
+        error: errorMessage,
+        ...(process.env.NODE_ENV === 'development' && { 
+          details: error.stack 
+        })
+      });
     }
   }
 

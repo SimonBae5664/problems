@@ -13,52 +13,89 @@ export interface AuthResult {
 
 export class AuthService {
   static async register(email: string, password: string, name: string): Promise<AuthResult> {
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
-
-    if (existingUser) {
-      throw new Error('User already exists');
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create user
-    const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        name,
-        emailVerified: false, // 이메일 인증 전까지 false
-      },
-    });
-
-    // 이메일 인증 코드 생성 및 이메일 발송
     try {
-      const { EmailService } = await import('./email.service');
-      const verificationCode = await EmailService.createVerificationCode(user.id);
-      await EmailService.sendVerificationEmail(email, name, verificationCode);
-    } catch (error) {
-      console.error('이메일 발송 실패:', error);
-      // 이메일 발송 실패해도 사용자는 생성됨 (나중에 재발송 가능)
+      // Check if user already exists
+      const existingUser = await prisma.user.findUnique({
+        where: { email },
+      });
+
+      if (existingUser) {
+        throw new Error('User already exists');
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Create user
+      let user;
+      try {
+        user = await prisma.user.create({
+          data: {
+            email,
+            password: hashedPassword,
+            name,
+            emailVerified: false, // 이메일 인증 전까지 false
+          },
+        });
+      } catch (error: any) {
+        console.error('사용자 생성 실패:', error);
+        // 데이터베이스 제약 조건 에러 처리
+        if (error.code === 'P2002') {
+          throw new Error('이미 존재하는 이메일입니다.');
+        }
+        throw new Error(`사용자 생성 실패: ${error.message || '알 수 없는 오류'}`);
+      }
+
+      // 이메일 인증 코드 생성 및 이메일 발송
+      try {
+        const { EmailService } = await import('./email.service');
+        const verificationCode = await EmailService.createVerificationCode(user.id);
+        await EmailService.sendVerificationEmail(email, name, verificationCode);
+      } catch (error: any) {
+        console.error('이메일 발송 실패:', error);
+        // 이메일 발송 실패해도 사용자는 생성됨 (나중에 재발송 가능)
+        // 하지만 에러 메시지는 기록
+        if (error.message?.includes('재전송 제한')) {
+          console.warn('재전송 제한으로 인해 이메일을 발송할 수 없습니다.');
+        }
+      }
+
+      // 자동 인증 시도 (신원 인증)
+      try {
+        const { VerificationService } = await import('./verification.service');
+        await VerificationService.autoVerifyUser(user.id, email);
+      } catch (error: any) {
+        console.error('자동 인증 실패:', error);
+        // 자동 인증 실패해도 사용자는 생성됨
+      }
+
+      // Generate JWT token
+      let token;
+      try {
+        token = this.generateToken(user.id);
+      } catch (error: any) {
+        console.error('JWT 토큰 생성 실패:', error);
+        throw new Error(`토큰 생성 실패: ${error.message || 'JWT_SECRET이 설정되지 않았습니다.'}`);
+      }
+
+      // Remove password from user object
+      const { password: _, ...userWithoutPassword } = user;
+
+      return {
+        user: userWithoutPassword,
+        token,
+      };
+    } catch (error: any) {
+      // 이미 처리된 에러는 그대로 throw
+      if (error.message === 'User already exists' || 
+          error.message.includes('이미 존재하는') ||
+          error.message.includes('토큰 생성 실패')) {
+        throw error;
+      }
+      // 기타 예상치 못한 에러
+      console.error('회원가입 중 예상치 못한 오류:', error);
+      throw new Error(`회원가입 실패: ${error.message || '알 수 없는 오류가 발생했습니다.'}`);
     }
-
-    // 자동 인증 시도 (신원 인증)
-    const { VerificationService } = await import('./verification.service');
-    await VerificationService.autoVerifyUser(user.id, email);
-
-    // Generate JWT token
-    const token = this.generateToken(user.id);
-
-    // Remove password from user object
-    const { password: _, ...userWithoutPassword } = user;
-
-    return {
-      user: userWithoutPassword,
-      token,
-    };
   }
 
   static async login(email: string, password: string): Promise<AuthResult> {
