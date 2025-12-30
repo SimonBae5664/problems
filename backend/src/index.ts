@@ -124,6 +124,28 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Database health check endpoint
+app.get('/health/db', async (req, res) => {
+  try {
+    const { prisma } = await import('./utils/prisma');
+    // 간단한 쿼리로 연결 테스트
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ 
+      status: 'ok', 
+      message: 'Database connection successful',
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error: any) {
+    console.error('Database health check failed:', error);
+    res.status(500).json({ 
+      status: 'error', 
+      message: 'Database connection failed',
+      error: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
+
 // 서버 시작
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
