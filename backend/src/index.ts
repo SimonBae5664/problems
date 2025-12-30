@@ -16,6 +16,7 @@ dotenv.config();
 // 데이터베이스 연결 문자열 검증 및 변환
 const validateDatabaseUrl = () => {
   const dbUrl = process.env.DATABASE_URL;
+  const directUrl = process.env.DIRECT_URL;
   
   if (!dbUrl) {
     console.error('❌ DATABASE_URL 환경 변수가 설정되지 않았습니다!');
@@ -23,23 +24,40 @@ const validateDatabaseUrl = () => {
     return;
   }
   
-  // Supabase Connection Pooler 사용 권장
-  if (dbUrl.includes(':5432') && !dbUrl.includes('pooler')) {
-    console.warn('⚠️  Direct connection (포트 5432)을 사용하고 있습니다.');
-    console.warn('⚠️  Connection Pooler (포트 6543) 사용을 권장합니다.');
-    console.warn('📖 Supabase 대시보드 → Settings → Database → Connection Pooling');
-    console.warn('📖 Transaction 모드 URL을 복사하여 DATABASE_URL에 설정하세요.');
+  // URL 형식 검증
+  if (!dbUrl.startsWith('postgresql://') && !dbUrl.startsWith('postgres://')) {
+    console.error('❌ DATABASE_URL은 postgresql:// 또는 postgres://로 시작해야 합니다.');
+    console.error('현재 값:', dbUrl.substring(0, 50) + '...');
   }
   
   // Connection Pooler 사용 중인지 확인
   if (dbUrl.includes(':6543') || dbUrl.includes('pooler')) {
     console.log('✅ Connection Pooler를 사용하고 있습니다.');
+    if (!directUrl) {
+      console.warn('⚠️  DIRECT_URL이 설정되지 않았습니다.');
+      console.warn('⚠️  Prisma는 Connection Pooler와 Direct connection을 모두 필요로 합니다.');
+      console.warn('📖 Render에서 DIRECT_URL 환경 변수를 추가하세요.');
+      console.warn('📖 DIRECT_URL은 포트 5432를 사용하는 Direct connection URL이어야 합니다.');
+    } else {
+      console.log('✅ DIRECT_URL이 설정되어 있습니다.');
+    }
+  } else if (dbUrl.includes(':5432')) {
+    console.log('ℹ️  Direct connection (포트 5432)을 사용하고 있습니다.');
+    console.log('ℹ️  Connection Pooler 사용을 권장하지만, Direct connection도 작동합니다.');
   }
   
-  // URL 형식 검증
-  if (!dbUrl.startsWith('postgresql://') && !dbUrl.startsWith('postgres://')) {
-    console.error('❌ DATABASE_URL은 postgresql:// 또는 postgres://로 시작해야 합니다.');
-    console.error('현재 값:', dbUrl.substring(0, 20) + '...');
+  // URL에 잘못된 파라미터가 있는지 확인
+  if (dbUrl.includes('?pgbouncer=true')) {
+    console.warn('⚠️  ?pgbouncer=true 파라미터가 포함되어 있습니다.');
+    console.warn('⚠️  Prisma는 이 파라미터를 인식하지 못할 수 있습니다.');
+    console.warn('⚠️  ?pgbouncer=true를 제거하고 다시 시도해보세요.');
+  }
+  
+  // Connection pool 파라미터 확인
+  if (!dbUrl.includes('connection_limit') && !dbUrl.includes('pool_timeout')) {
+    console.warn('⚠️  Connection pool 파라미터가 없습니다.');
+    console.warn('⚠️  연결 풀 타임아웃을 방지하려면 다음 파라미터를 추가하세요:');
+    console.warn('⚠️  ?connection_limit=10&pool_timeout=20');
   }
 };
 
