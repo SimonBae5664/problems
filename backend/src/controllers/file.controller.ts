@@ -1,5 +1,5 @@
-import { Response } from 'express';
-import { AuthRequest } from '../middleware/auth';
+import { Request, Response, RequestHandler } from 'express';
+import { ExpressRequest } from '../middleware/auth';
 import { prisma } from '../utils/prisma';
 import { getStorageService } from '../services/storage.service';
 import { v4 as uuidv4 } from 'uuid';
@@ -8,7 +8,8 @@ export class FileController {
   /**
    * Initialize file upload - create file record and get signed upload URL
    */
-  static async initUpload(req: Request, res: Response) {
+  static initUpload: RequestHandler = async (req: Request, res: Response) => {
+    const expressReq = req as ExpressRequest;
     try {
       const { filename, mimeType, size } = req.body;
       const userId = ((req as any).user as { id: string; email: string; role: string })!.id;
@@ -60,12 +61,13 @@ export class FileController {
       console.error('Error initializing upload:', error);
       res.status(500).json({ error: 'Failed to initialize upload' });
     }
-  }
+  };
 
   /**
    * Get signed download URL for a file
    */
-  static async getSignedDownloadUrl(req: Request, res: Response) {
+  static getSignedDownloadUrl: RequestHandler = async (req: Request, res: Response) => {
+    const expressReq = req as ExpressRequest;
     try {
       const { id } = req.params;
       const userId = ((req as any).user as { id: string; email: string; role: string })!.id;
@@ -100,18 +102,19 @@ export class FileController {
       console.error('Error getting signed URL:', error);
       res.status(500).json({ error: 'Failed to get signed URL' });
     }
-  }
+  };
 
   /**
    * List files for a user
    */
-  static async listFiles(req: Request, res: Response) {
+  static listFiles: RequestHandler = async (req: Request, res: Response) => {
+    const expressReq = req as ExpressRequest;
     try {
       const userId = ((req as any).user as { id: string; email: string; role: string })!.id;
       const { visibility, limit = 50, offset = 0 } = req.query;
 
       const where: any = { ownerId: userId };
-      if (visibility) {
+      if (visibility && typeof visibility === 'string') {
         where.visibility = visibility.toUpperCase();
       }
 
@@ -139,12 +142,13 @@ export class FileController {
       console.error('Error listing files:', error);
       res.status(500).json({ error: 'Failed to list files' });
     }
-  }
+  };
 
   /**
    * Delete a file
    */
-  static async deleteFile(req: Request, res: Response) {
+  static deleteFile: RequestHandler = async (req: Request, res: Response) => {
+    const expressReq = req as ExpressRequest;
     try {
       const { id } = req.params;
       const userId = ((req as any).user as { id: string; email: string; role: string })!.id;
@@ -175,6 +179,5 @@ export class FileController {
       console.error('Error deleting file:', error);
       res.status(500).json({ error: 'Failed to delete file' });
     }
-  }
+  };
 }
-

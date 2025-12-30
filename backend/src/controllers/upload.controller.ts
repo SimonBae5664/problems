@@ -1,12 +1,13 @@
-import { Response } from 'express';
-import { AuthRequest } from '../middleware/auth';
+import { Request, Response, RequestHandler } from 'express';
+import { ExpressRequest } from '../middleware/auth';
 import { getStorageService } from '../services/storage.service';
 
 export class UploadController {
   /**
    * PDF 파일 업로드
    */
-  static async uploadPdf(req: Request, res: Response) {
+  static uploadPdf: RequestHandler = async (req: Request, res: Response) => {
+    const expressReq = req as ExpressRequest;
     try {
       if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
@@ -29,12 +30,13 @@ export class UploadController {
       }
       res.status(500).json({ error: 'File upload failed' });
     }
-  }
+  };
 
   /**
    * 파일 삭제
    */
-  static async deleteFile(req: Request, res: Response) {
+  static deleteFile: RequestHandler = async (req: Request, res: Response) => {
+    const expressReq = req as ExpressRequest;
     try {
       const { url } = req.body;
 
@@ -49,6 +51,5 @@ export class UploadController {
     } catch (error: any) {
       res.status(500).json({ error: 'File deletion failed' });
     }
-  }
+  };
 }
-

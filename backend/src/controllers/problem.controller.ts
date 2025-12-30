@@ -1,5 +1,5 @@
-import { Response } from 'express';
-import { AuthRequest } from '../middleware/auth';
+import { Request, Response, RequestHandler } from 'express';
+import { ExpressRequest } from '../middleware/auth';
 import { ProblemService } from '../services/problem.service';
 import { Subject, Difficulty } from '@prisma/client';
 
@@ -7,7 +7,8 @@ export class ProblemController {
   /**
    * 문제 제출
    */
-  static async createProblem(req: Request, res: Response) {
+  static createProblem: RequestHandler = async (req: Request, res: Response) => {
+    const expressReq = req as ExpressRequest;
     try {
       if (!(req as any).user) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -32,12 +33,13 @@ export class ProblemController {
     } catch (error: any) {
       res.status(500).json({ error: error.message || 'Failed to create problem' });
     }
-  }
+  };
 
   /**
    * 공개된 문제 목록 조회
    */
-  static async getPublishedProblems(req: Request, res: Response) {
+  static getPublishedProblems: RequestHandler = async (req: Request, res: Response) => {
+    const expressReq = req as ExpressRequest;
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
@@ -49,12 +51,13 @@ export class ProblemController {
     } catch (error: any) {
       res.status(500).json({ error: 'Failed to get problems' });
     }
-  }
+  };
 
   /**
    * 문제 상세 조회
    */
-  static async getProblemById(req: Request, res: Response) {
+  static getProblemById: RequestHandler = async (req: Request, res: Response) => {
+    const expressReq = req as ExpressRequest;
     try {
       const { id } = req.params;
       const includeUnpublished = (req as any).user?.role === 'ADMIN' || 
@@ -68,12 +71,13 @@ export class ProblemController {
       }
       res.status(500).json({ error: 'Failed to get problem' });
     }
-  }
+  };
 
   /**
    * 내가 제출한 문제 목록
    */
-  static async getMyProblems(req: Request, res: Response) {
+  static getMyProblems: RequestHandler = async (req: Request, res: Response) => {
+    const expressReq = req as ExpressRequest;
     try {
       if (!(req as any).user) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -87,12 +91,13 @@ export class ProblemController {
     } catch (error) {
       res.status(500).json({ error: 'Failed to get my problems' });
     }
-  }
+  };
 
   /**
    * 운영진: 대기 중인 문제 목록
    */
-  static async getPendingProblems(req: Request, res: Response) {
+  static getPendingProblems: RequestHandler = async (req: Request, res: Response) => {
+    const expressReq = req as ExpressRequest;
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
@@ -102,12 +107,13 @@ export class ProblemController {
     } catch (error) {
       res.status(500).json({ error: 'Failed to get pending problems' });
     }
-  }
+  };
 
   /**
    * 운영진: 문제 승인
    */
-  static async approveProblem(req: Request, res: Response) {
+  static approveProblem: RequestHandler = async (req: Request, res: Response) => {
+    const expressReq = req as ExpressRequest;
     try {
       if (!(req as any).user) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -119,12 +125,13 @@ export class ProblemController {
     } catch (error: any) {
       res.status(500).json({ error: error.message || 'Failed to approve problem' });
     }
-  }
+  };
 
   /**
    * 운영진: 문제 거부
    */
-  static async rejectProblem(req: Request, res: Response) {
+  static rejectProblem: RequestHandler = async (req: Request, res: Response) => {
+    const expressReq = req as ExpressRequest;
     try {
       if (!(req as any).user) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -142,12 +149,13 @@ export class ProblemController {
     } catch (error: any) {
       res.status(500).json({ error: error.message || 'Failed to reject problem' });
     }
-  }
+  };
 
   /**
    * 운영진: 검수 시작
    */
-  static async startReview(req: Request, res: Response) {
+  static startReview: RequestHandler = async (req: Request, res: Response) => {
+    const expressReq = req as ExpressRequest;
     try {
       if (!(req as any).user) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -159,6 +167,5 @@ export class ProblemController {
     } catch (error: any) {
       res.status(500).json({ error: error.message || 'Failed to start review' });
     }
-  }
+  };
 }
-

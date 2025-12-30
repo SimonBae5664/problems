@@ -1,10 +1,10 @@
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import { prisma } from '../utils/prisma';
 import { User } from '@prisma/client';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'default-secret';
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+const JWT_EXPIRES_IN: string = process.env.JWT_EXPIRES_IN || '7d';
 
 export interface AuthResult {
   user: Omit<User, 'password'>;
@@ -99,9 +99,11 @@ export class AuthService {
     if (!JWT_SECRET || JWT_SECRET === 'default-secret') {
       throw new Error('JWT_SECRET is not properly configured');
     }
-    return jwt.sign({ userId }, JWT_SECRET, {
-      expiresIn: JWT_EXPIRES_IN,
-    } as jwt.SignOptions);
+    return jwt.sign(
+      { userId },
+      JWT_SECRET,
+      { expiresIn: JWT_EXPIRES_IN } as SignOptions
+    );
   }
 
   static verifyToken(token: string): { userId: string } {

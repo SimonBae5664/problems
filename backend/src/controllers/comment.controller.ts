@@ -1,5 +1,5 @@
-import { Response } from 'express';
-import { AuthRequest } from '../middleware/auth';
+import { Request, Response, RequestHandler } from 'express';
+import { ExpressRequest } from '../middleware/auth';
 import { CommentService } from '../services/comment.service';
 
 type CommentSortOrder = 'NEWEST' | 'OLDEST' | 'MOST_LIKED';
@@ -8,7 +8,8 @@ export class CommentController {
   /**
    * 댓글 작성
    */
-  static async createComment(req: Request, res: Response) {
+  static createComment: RequestHandler = async (req: Request, res: Response) => {
+    const expressReq = req as ExpressRequest;
     try {
       if (!(req as any).user) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -34,12 +35,13 @@ export class CommentController {
       }
       res.status(500).json({ error: error.message || 'Failed to create comment' });
     }
-  }
+  };
 
   /**
    * 댓글 수정
    */
-  static async updateComment(req: Request, res: Response) {
+  static updateComment: RequestHandler = async (req: Request, res: Response) => {
+    const expressReq = req as ExpressRequest;
     try {
       if (!(req as any).user) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -60,12 +62,13 @@ export class CommentController {
       }
       res.status(500).json({ error: error.message || 'Failed to update comment' });
     }
-  }
+  };
 
   /**
    * 댓글 삭제
    */
-  static async deleteComment(req: Request, res: Response) {
+  static deleteComment: RequestHandler = async (req: Request, res: Response) => {
+    const expressReq = req as ExpressRequest;
     try {
       if (!(req as any).user) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -80,12 +83,13 @@ export class CommentController {
       }
       res.status(500).json({ error: error.message || 'Failed to delete comment' });
     }
-  }
+  };
 
   /**
    * 댓글 목록 조회
    */
-  static async getComments(req: Request, res: Response) {
+  static getComments: RequestHandler = async (req: Request, res: Response) => {
+    const expressReq = req as ExpressRequest;
     try {
       const { problemId } = req.params;
       const page = parseInt(req.query.page as string) || 1;
@@ -105,12 +109,13 @@ export class CommentController {
     } catch (error: any) {
       res.status(500).json({ error: 'Failed to get comments' });
     }
-  }
+  };
 
   /**
    * 댓글 좋아요/싫어요
    */
-  static async toggleLike(req: Request, res: Response) {
+  static toggleLike: RequestHandler = async (req: Request, res: Response) => {
+    const expressReq = req as ExpressRequest;
     try {
       if (!(req as any).user) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -131,12 +136,13 @@ export class CommentController {
       }
       res.status(500).json({ error: error.message || 'Failed to toggle like' });
     }
-  }
+  };
 
   /**
    * 댓글 수정 이력 조회
    */
-  static async getEditHistory(req: Request, res: Response) {
+  static getEditHistory: RequestHandler = async (req: Request, res: Response) => {
+    const expressReq = req as ExpressRequest;
     try {
       if (!(req as any).user) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -151,6 +157,5 @@ export class CommentController {
       }
       res.status(500).json({ error: error.message || 'Failed to get edit history' });
     }
-  }
+  };
 }
-

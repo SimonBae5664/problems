@@ -1,12 +1,13 @@
-import { Response } from 'express';
-import { AuthRequest } from '../middleware/auth';
+import { Request, Response, RequestHandler } from 'express';
+import { ExpressRequest } from '../middleware/auth';
 import { prisma } from '../utils/prisma';
 
 export class JobController {
   /**
    * Create a processing job for a file
    */
-  static async createJob(req: Request, res: Response) {
+  static createJob: RequestHandler = async (req: Request, res: Response) => {
+    const expressReq = req as ExpressRequest;
     try {
       const { fileId, jobType } = req.body;
       const userId = ((req as any).user as { id: string; email: string; role: string })!.id;
@@ -33,7 +34,7 @@ export class JobController {
         data: {
           fileId,
           ownerId: userId,
-          jobType: jobType.toUpperCase(),
+          jobType: (jobType as string).toUpperCase() as any,
           status: 'QUEUED',
         },
       });
@@ -49,12 +50,13 @@ export class JobController {
       console.error('Error creating job:', error);
       res.status(500).json({ error: 'Failed to create job' });
     }
-  }
+  };
 
   /**
    * Get job status
    */
-  static async getJobStatus(req: Request, res: Response) {
+  static getJobStatus: RequestHandler = async (req: Request, res: Response) => {
+    const expressReq = req as ExpressRequest;
     try {
       const { id } = req.params;
       const userId = ((req as any).user as { id: string; email: string; role: string })!.id;
@@ -99,18 +101,19 @@ export class JobController {
       console.error('Error getting job status:', error);
       res.status(500).json({ error: 'Failed to get job status' });
     }
-  }
+  };
 
   /**
    * List jobs for a user
    */
-  static async listJobs(req: Request, res: Response) {
+  static listJobs: RequestHandler = async (req: Request, res: Response) => {
+    const expressReq = req as ExpressRequest;
     try {
       const userId = ((req as any).user as { id: string; email: string; role: string })!.id;
       const { status, limit = 50, offset = 0 } = req.query;
 
       const where: any = { ownerId: userId };
-      if (status) {
+      if (status && typeof status === 'string') {
         where.status = status.toUpperCase();
       }
 
@@ -137,6 +140,5 @@ export class JobController {
       console.error('Error listing jobs:', error);
       res.status(500).json({ error: 'Failed to list jobs' });
     }
-  }
+  };
 }
-

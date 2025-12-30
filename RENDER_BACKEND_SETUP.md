@@ -14,10 +14,18 @@ Render에서 백엔드 서비스를 생성하는 단계별 가이드입니다.
 
 ## 3단계: GitHub 저장소 연결
 
+⚠️ **중요**: "It looks like we don't have access to your repo" 오류가 발생하면:
+- [RENDER_GITHUB_ACCESS_FIX.md](./RENDER_GITHUB_ACCESS_FIX.md) 참고
+
 1. **"Connect account"** 또는 **"Connect GitHub"** 클릭 (아직 연결 안 했다면)
 2. GitHub 계정 인증
 3. 저장소 목록에서 **`SimonBae5664/problems`** 선택
 4. **"Connect"** 클릭
+
+**저장소가 보이지 않는 경우:**
+- Render 대시보드 → Account Settings → Connected Accounts
+- GitHub 재연결 시도
+- 저장소가 Private인 경우, Public으로 임시 변경 또는 Render 앱 권한 확인
 
 ## 4단계: 서비스 설정 (중요!)
 

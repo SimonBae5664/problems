@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction, RequestHandler } from 'express';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../utils/prisma';
 
@@ -10,8 +10,20 @@ export interface AuthRequest extends Request {
   };
 }
 
-export const authenticateToken = async (
-  req: AuthRequest,
+// 헬퍼 타입: Express Request를 확장한 타입
+export type ExpressRequest = Request & {
+  body: any;
+  params: any;
+  query: any;
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+};
+
+export const authenticateToken: RequestHandler = async (
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
@@ -20,7 +32,8 @@ export const authenticateToken = async (
     const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
     if (!token) {
-      return res.status(401).json({ error: 'Access token required' });
+      res.status(401).json({ error: 'Access token required' });
+      return;
     }
 
     const jwtSecret = process.env.JWT_SECRET;
@@ -36,26 +49,31 @@ export const authenticateToken = async (
     });
 
     if (!user) {
-      return res.status(401).json({ error: 'User not found' });
+      res.status(401).json({ error: 'User not found' });
+      return;
     }
 
-    (req as any).user = user;
+    (req as ExpressRequest).user = user;
     next();
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
-      return res.status(403).json({ error: 'Invalid token' });
+      res.status(403).json({ error: 'Invalid token' });
+      return;
     }
-    return res.status(500).json({ error: 'Authentication failed' });
+    res.status(500).json({ error: 'Authentication failed' });
+    return;
   }
 };
 
-export const requireAdmin = (
+export const requireAdmin: RequestHandler = (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  if (!req.user || (req.user as { id: string; email: string; role: string }).role !== 'ADMIN') {
-    return res.status(403).json({ error: 'Admin access required' });
+  const expressReq = req as ExpressRequest;
+  if (!expressReq.user || expressReq.user.role !== 'ADMIN') {
+    res.status(403).json({ error: 'Admin access required' });
+    return;
   }
   next();
 };
