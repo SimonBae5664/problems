@@ -1,4 +1,3 @@
-import React from 'react';
 import { ProcessingJob } from '../types';
 import './JobStatus.css';
 

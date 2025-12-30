@@ -227,39 +227,99 @@ GitHub와 연동된 경우:
 
 ### GitHub 저장소 오류: "does not contain the requested branch or commit reference"
 
-이 오류는 보통 다음 이유로 발생합니다:
+이 오류는 **원격 저장소에 코드가 푸시되지 않았을 때** 발생합니다.
 
-1. **저장소가 비어있음**
-   ```bash
-   # 모든 변경사항 커밋 및 푸시
-   git add .
-   git commit -m "Initial commit with frontend"
-   git push origin main
-   ```
+#### 🔍 문제 확인
 
-2. **main/master 브랜치가 없음**
-   ```bash
-   # 현재 브랜치 확인
-   git branch
-   
-   # main 브랜치로 전환 (필요시)
-   git checkout -b main
-   git push -u origin main
-   ```
+터미널에서 다음 명령어로 확인:
+```bash
+# 원격 브랜치 확인 (비어있으면 문제)
+git ls-remote --heads origin
 
-3. **Vercel 권한 문제**
+# 로컬과 원격 차이 확인
+git log origin/main..main  # 로컬에만 있는 커밋 확인
+```
+
+#### ✅ 해결 방법
+
+**1단계: GitHub에 푸시 (필수)**
+
+인증 문제로 푸시가 안 되는 경우:
+
+**방법 A: Personal Access Token 사용 (권장)**
+```bash
+# 1. GitHub에서 Personal Access Token 생성
+#    - GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)
+#    - Generate new token → repo 권한 선택 → 생성
+
+# 2. 푸시 시 토큰 사용
+git push https://YOUR_TOKEN@github.com/SimonBae5664/problems.git main
+```
+
+**방법 B: SSH 사용**
+```bash
+# 1. SSH 키가 있는지 확인
+ls -la ~/.ssh
+
+# 2. 없으면 생성
+ssh-keygen -t ed25519 -C "your_email@example.com"
+
+# 3. GitHub에 SSH 키 추가
+#    - GitHub → Settings → SSH and GPG keys → New SSH key
+#    - ~/.ssh/id_ed25519.pub 내용 복사하여 추가
+
+# 4. 원격 URL을 SSH로 변경
+git remote set-url origin git@github.com:SimonBae5664/problems.git
+
+# 5. 푸시
+git push -u origin main
+```
+
+**방법 C: GitHub Desktop 사용**
+- GitHub Desktop 앱에서 "Push origin" 버튼 클릭
+- 또는 "Publish repository" 클릭
+
+**방법 D: GitHub 웹에서 직접 확인**
+- https://github.com/SimonBae5664/problems 접속
+- 저장소가 비어있거나 오래된 커밋만 있다면 위 방법으로 푸시 필요
+
+**2단계: 푸시 확인**
+
+```bash
+# 원격 브랜치 확인 (main이 보여야 함)
+git ls-remote --heads origin
+
+# GitHub 웹에서 확인
+# https://github.com/SimonBae5664/problems 에서 파일이 보이는지 확인
+```
+
+**3단계: Vercel에서 다시 시도**
+
+1. 푸시 완료 후 몇 분 대기 (GitHub 동기화 시간)
+2. Vercel에서 저장소 재연결:
    - Vercel 대시보드 → Settings → Git
-   - GitHub 재연결 시도
-   - 저장소 접근 권한 확인
+   - "Disconnect" 후 다시 연결
+3. 또는 새 프로젝트로 다시 Import
 
-4. **저장소가 아직 푸시되지 않음**
-   - 로컬에만 있고 GitHub에 없는 경우
-   - 위의 git push 명령어로 푸시
+#### 🚨 여전히 안 되는 경우
 
-**확인 방법:**
-- GitHub 웹사이트에서 저장소 접속
-- 파일이 보이고 `main` 브랜치가 있는지 확인
-- 최신 커밋이 있는지 확인
+**대안 1: Vercel CLI로 직접 배포**
+```bash
+cd frontend
+npm install -g vercel
+vercel login
+vercel --prod
+```
+- GitHub 연결 없이 직접 배포 가능
+- 단, 자동 배포는 안 됨
+
+**대안 2: 다른 브랜치 확인**
+- Vercel에서 브랜치를 `master`로 시도
+- 또는 다른 브랜치가 있는지 확인
+
+**대안 3: 저장소 권한 확인**
+- Vercel이 GitHub 저장소에 접근할 수 있는 권한이 있는지 확인
+- Vercel 대시보드 → Settings → Git → 권한 확인
 
 ### Root Directory를 설정할 수 없는 경우
 
@@ -332,4 +392,5 @@ Vercel UI가 업데이트되면서 환경 선택 방식이 달라질 수 있습�
 - Vercel은 Vite를 자동으로 감지하므로 `vercel.json`의 일부 설정은 불필요합니다
 - 환경 변수는 빌드 시점에 주입되므로, 변경 후 재배포가 필요합니다
 - Preview 배포는 PR마다 자동으로 생성되어 테스트할 수 있습니다
+
 

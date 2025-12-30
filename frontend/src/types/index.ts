@@ -23,6 +23,7 @@ export interface Problem {
     id: string;
     name: string;
   };
+  rejectionReason?: string;
   createdAt: string;
   updatedAt: string;
   _count?: {

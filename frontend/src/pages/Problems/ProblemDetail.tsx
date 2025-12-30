@@ -1,15 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { problemService } from '../../services/problem.service';
-import { commentService } from '../../services/comment.service';
-import { Problem, Comment } from '../../types';
-import { useAuth } from '../../hooks/useAuth';
+import { Problem } from '../../types';
 import CommentSection from '../../components/CommentSection';
 import './ProblemDetail.css';
 
 export default function ProblemDetail() {
   const { id } = useParams<{ id: string }>();
-  const { isAuthenticated } = useAuth();
   const [problem, setProblem] = useState<Problem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
