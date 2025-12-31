@@ -46,45 +46,61 @@ export class AuthService {
         throw new Error(`사용자 생성 실패: ${error.message || '알 수 없는 오류'}`);
       }
 
-      // 이메일 인증 코드 생성 및 이메일 발송
-      try {
-        const { EmailService } = await import('./email.service');
-        const verificationCode = await EmailService.createVerificationCode(user.id);
-        await EmailService.sendVerificationEmail(email, name, verificationCode);
-      } catch (error: any) {
-        console.error('이메일 발송 실패:', error);
-        // 이메일 발송 실패해도 사용자는 생성됨 (나중에 재발송 가능)
-        // 하지만 에러 메시지는 기록
-        if (error.message?.includes('재전송 제한')) {
-          console.warn('재전송 제한으로 인해 이메일을 발송할 수 없습니다.');
-        }
-      }
-
-      // 자동 인증 시도 (신원 인증)
-      try {
-        const { VerificationService } = await import('./verification.service');
-        await VerificationService.autoVerifyUser(user.id, email);
-      } catch (error: any) {
-        console.error('자동 인증 실패:', error);
-        // 자동 인증 실패해도 사용자는 생성됨
-      }
-
-      // Generate JWT token
+      // Generate JWT token (사용자 생성 후 즉시 토큰 생성)
+      // 토큰 생성 실패 시 회원가입 전체가 실패하므로 먼저 처리
       let token;
       try {
         token = this.generateToken(user.id);
       } catch (error: any) {
         console.error('JWT 토큰 생성 실패:', error);
-        throw new Error(`토큰 생성 실패: ${error.message || 'JWT_SECRET이 설정되지 않았습니다.'}`);
+        // JWT_SECRET이 설정되지 않은 경우 명확한 에러 메시지
+        if (error.message?.includes('JWT_SECRET') || !process.env.JWT_SECRET || process.env.JWT_SECRET === 'default-secret') {
+          throw new Error('JWT_SECRET이 설정되지 않았습니다. Render 대시보드에서 JWT_SECRET 환경 변수를 설정해주세요.');
+        }
+        throw new Error(`토큰 생성 실패: ${error.message || '알 수 없는 오류'}`);
       }
 
       // Remove password from user object
       const { password: _, ...userWithoutPassword } = user;
 
-      return {
+      // 회원가입 성공 응답을 먼저 반환하기 위해 결과 준비
+      const result = {
         user: userWithoutPassword,
         token,
       };
+
+      // 이메일 인증 코드 생성 및 이메일 발송 (비동기, 실패해도 회원가입은 성공)
+      // 이메일 발송은 응답 후에 처리하여 사용자 대기 시간을 줄임
+      setImmediate(async () => {
+        try {
+          const { EmailService } = await import('./email.service');
+          const verificationCode = await EmailService.createVerificationCode(user.id);
+          await EmailService.sendVerificationEmail(email, name, verificationCode);
+        } catch (error: any) {
+          console.error('이메일 발송 실패 (회원가입은 성공):', error);
+          // 이메일 발송 실패해도 사용자는 생성됨 (나중에 재발송 가능)
+          if (error.message?.includes('재전송 제한')) {
+            console.warn('재전송 제한으로 인해 이메일을 발송할 수 없습니다.');
+          }
+          if (error.code === 'ETIMEDOUT') {
+            console.warn('이메일 서버 연결 타임아웃 - SMTP 설정을 확인하세요.');
+          }
+        }
+      });
+
+      // 자동 인증 시도 (신원 인증) - 비동기 처리
+      setImmediate(async () => {
+        try {
+          const { VerificationService } = await import('./verification.service');
+          await VerificationService.autoVerifyUser(user.id, email);
+        } catch (error: any) {
+          console.error('자동 인증 실패 (회원가입은 성공):', error);
+          // 자동 인증 실패해도 사용자는 생성됨
+        }
+      });
+
+      // 회원가입 성공 응답 반환 (이메일 발송과 독립적으로)
+      return result;
     } catch (error: any) {
       // 이미 처리된 에러는 그대로 throw
       if (error.message === 'User already exists' || 
@@ -134,8 +150,15 @@ export class AuthService {
 
   static generateToken(userId: string): string {
     if (!JWT_SECRET || JWT_SECRET === 'default-secret') {
-      throw new Error('JWT_SECRET is not properly configured');
+      throw new Error('JWT_SECRET is not properly configured. Please set JWT_SECRET environment variable in Render dashboard.');
     }
+    
+    // JWT_SECRET 길이 검증 (바이트 기준)
+    const byteLength = Buffer.byteLength(JWT_SECRET, 'utf8');
+    if (byteLength < 16) {
+      throw new Error(`JWT_SECRET is too short (${byteLength} bytes). Minimum 16 bytes (recommended: 32 bytes) required.`);
+    }
+    
     return jwt.sign(
       { userId },
       JWT_SECRET,

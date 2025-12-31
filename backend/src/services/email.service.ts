@@ -18,11 +18,15 @@ const createTransporter = () => {
   return nodemailer.createTransport({
     host: emailHost,
     port: emailPort,
-    secure: emailSecure,
+    secure: emailSecure, // 587은 보통 false, 465는 true
     auth: {
       user: emailUser,
       pass: emailPassword,
     },
+    // 타임아웃 설정 (Render 환경에서 SMTP 연결 안정성 향상)
+    connectionTimeout: 10000, // 10초
+    greetingTimeout: 10000,    // 10초
+    socketTimeout: 20000,      // 20초
   });
 };
 

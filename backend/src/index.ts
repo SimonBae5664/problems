@@ -24,6 +24,38 @@ if (process.env.NODE_ENV !== 'production') {
   dotenv.config();
 }
 
+// JWT_SECRET 검증 (서버 시작 시)
+const validateJwtSecret = () => {
+  const jwtSecret = process.env.JWT_SECRET;
+  
+  if (!jwtSecret || jwtSecret === 'default-secret') {
+    console.error('❌ JWT_SECRET이 설정되지 않았거나 기본값입니다!');
+    console.error('Render 대시보드에서 JWT_SECRET 환경 변수를 설정해주세요.');
+    console.error('⚠️  보안을 위해 최소 16바이트 (권장: 32바이트)의 랜덤 문자열을 사용하세요.');
+    return;
+  }
+  
+  // 바이트 길이로 검증 (UTF-8 인코딩 기준)
+  const byteLength = Buffer.byteLength(jwtSecret, 'utf8');
+  
+  if (byteLength < 16) {
+    console.error('❌ JWT_SECRET이 너무 짧습니다!');
+    console.error(`현재 바이트 길이: ${byteLength}바이트`);
+    console.error('⚠️  보안을 위해 최소 16바이트 (권장: 32바이트)를 사용하세요.');
+    return;
+  }
+  
+  if (byteLength < 32) {
+    console.warn('⚠️  JWT_SECRET이 32바이트 미만입니다.');
+    console.warn(`현재 바이트 길이: ${byteLength}바이트 (문자 길이: ${jwtSecret.length}자)`);
+    console.warn('💡 보안을 강화하려면 32바이트 이상의 랜덤 문자열을 사용하세요.');
+  } else {
+    console.log(`✅ JWT_SECRET 검증 통과 (${byteLength}바이트, ${jwtSecret.length}자)`);
+  }
+};
+
+validateJwtSecret();
+
 // 데이터베이스 연결 문자열 검증 및 변환
 const validateDatabaseUrl = () => {
   const dbUrl = process.env.DATABASE_URL;
