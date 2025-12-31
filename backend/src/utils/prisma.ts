@@ -15,10 +15,12 @@ async function testConnection() {
     }
     
     console.log('🔍 데이터베이스 연결 시도 중...');
-    const host = dbUrl.match(/@([^:]+):/)?.[1] || 'unknown';
-    const port = dbUrl.match(/:(\d+)\//)?.[1] || 'unknown';
-    const user = dbUrl.match(/\/\/([^:]+):/)?.[1] || 'unknown';
-    const database = dbUrl.match(/\/([^?]+)/)?.[1] || 'unknown';
+    // URL 파싱 개선
+    const urlMatch = dbUrl.match(/postgresql?:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/([^?]+)/);
+    const host = urlMatch?.[3] || 'unknown';
+    const port = urlMatch?.[4] || 'unknown';
+    const user = urlMatch?.[1] || 'unknown';
+    const database = urlMatch?.[5] || 'unknown';
     
     console.log('🔍 연결 정보:');
     console.log('   호스트:', host);
