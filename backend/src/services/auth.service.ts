@@ -15,6 +15,22 @@ export interface AuthResult {
 export class AuthService {
   static async register(email: string, password: string, name: string): Promise<AuthResult> {
     try {
+      // JWT_SECRET 검증 (회원 생성 전에 먼저 체크하여 부분 성공 방지)
+      // 토큰 생성이 불가능하면 회원가입 자체를 실패시킴
+      try {
+        // generateToken을 실제로 호출하지 않고 검증만 수행
+        if (!JWT_SECRET || JWT_SECRET === 'default-secret') {
+          throw new Error('JWT_SECRET이 설정되지 않았습니다. Render 대시보드에서 JWT_SECRET 환경 변수를 설정해주세요.');
+        }
+        const byteLength = Buffer.byteLength(JWT_SECRET, 'utf8');
+        if (byteLength < 32) {
+          throw new Error(`JWT_SECRET이 너무 짧습니다 (${byteLength}바이트). 최소 32바이트 (256bit)가 필요합니다.`);
+        }
+      } catch (error: any) {
+        console.error('JWT_SECRET 검증 실패:', error);
+        throw error; // 회원 생성 전에 실패시키기
+      }
+
       // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -153,10 +169,10 @@ export class AuthService {
       throw new Error('JWT_SECRET is not properly configured. Please set JWT_SECRET environment variable in Render dashboard.');
     }
     
-    // JWT_SECRET 길이 검증 (바이트 기준)
+    // JWT_SECRET 길이 검증 (바이트 기준, 최소 32바이트)
     const byteLength = Buffer.byteLength(JWT_SECRET, 'utf8');
-    if (byteLength < 16) {
-      throw new Error(`JWT_SECRET is too short (${byteLength} bytes). Minimum 16 bytes (recommended: 32 bytes) required.`);
+    if (byteLength < 32) {
+      throw new Error(`JWT_SECRET is too short (${byteLength} bytes). Minimum 32 bytes (256bit) required for security.`);
     }
     
     return jwt.sign(

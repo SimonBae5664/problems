@@ -6,7 +6,6 @@ const createTransporter = () => {
   // 환경 변수에서 이메일 설정 가져오기
   const emailHost = process.env.EMAIL_HOST || 'smtp.gmail.com';
   const emailPort = parseInt(process.env.EMAIL_PORT || '587');
-  const emailSecure = process.env.EMAIL_SECURE === 'true';
   const emailUser = process.env.EMAIL_USER;
   const emailPassword = process.env.EMAIL_PASSWORD;
 
@@ -15,10 +14,23 @@ const createTransporter = () => {
     return null;
   }
 
+  // 포트에 따라 secure 자동 설정 (실수 방지)
+  // 587 = STARTTLS (secure: false)
+  // 465 = SSL/TLS (secure: true)
+  let secure: boolean;
+  if (emailPort === 465) {
+    secure = true;
+  } else if (emailPort === 587) {
+    secure = false;
+  } else {
+    // 기타 포트는 환경 변수 사용 (fallback)
+    secure = process.env.EMAIL_SECURE === 'true';
+  }
+
   return nodemailer.createTransport({
     host: emailHost,
     port: emailPort,
-    secure: emailSecure, // 587은 보통 false, 465는 true
+    secure: secure, // 포트에 따라 자동 설정
     auth: {
       user: emailUser,
       pass: emailPassword,
