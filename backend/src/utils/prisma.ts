@@ -44,6 +44,39 @@ if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma;
 }
 
+// 🔍 Prisma가 실제로 사용할 DATABASE_URL 확인 (진단용)
+if (process.env.DATABASE_URL) {
+  try {
+    const url = new URL(process.env.DATABASE_URL);
+    console.log('🔍 Prisma가 사용할 DATABASE_URL 검증:');
+    console.log('   PATHNAME:', url.pathname);
+    console.log('   SEARCH:', url.search);
+    console.log('   전체 URL 길이:', process.env.DATABASE_URL.length);
+    
+    // URL에 공백이나 줄바꿈이 있는지 확인
+    if (process.env.DATABASE_URL.includes('\n') || process.env.DATABASE_URL.includes('\r')) {
+      console.error('❌ DATABASE_URL에 줄바꿈이 포함되어 있습니다!');
+      console.error('💡 Render에서 DATABASE_URL을 삭제하고 한 줄로 다시 추가하세요.');
+    }
+    
+    // URL 앞뒤 공백 확인
+    if (process.env.DATABASE_URL !== process.env.DATABASE_URL.trim()) {
+      console.error('❌ DATABASE_URL 앞뒤에 공백이 있습니다!');
+      console.error('💡 Render에서 DATABASE_URL을 삭제하고 공백 없이 다시 추가하세요.');
+    }
+    
+    // 따옴표로 감싸져 있는지 확인
+    const trimmed = process.env.DATABASE_URL.trim();
+    if ((trimmed.startsWith('"') && trimmed.endsWith('"')) || 
+        (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+      console.error('❌ DATABASE_URL이 따옴표로 감싸져 있습니다!');
+      console.error('💡 Render에서 DATABASE_URL을 삭제하고 따옴표 없이 다시 추가하세요.');
+    }
+  } catch (e) {
+    console.error('❌ DATABASE_URL 파싱 실패:', e);
+  }
+}
+
 // 서버 시작 시 데이터베이스 연결 테스트
 async function testConnection() {
   try {
@@ -59,7 +92,30 @@ async function testConnection() {
     let parsedUrl;
     try {
       parsedUrl = new URL(dbUrl);
+      
+      // 🔍 진단: PATHNAME과 SEARCH 확인 (ChatGPT 제안)
+      console.log('🔍 Prisma가 사용할 URL 파싱 진단:');
+      console.log('   PATHNAME:', parsedUrl.pathname); // "/postgres" 여야 함
+      console.log('   SEARCH:', parsedUrl.search);     // "?sslmode=require&connect_timeout=..." 여야 함
+      
+      // PATHNAME에 ?가 포함되어 있으면 URL이 깨진 것
+      if (parsedUrl.pathname.includes('?')) {
+        console.error('❌ PATHNAME에 ?가 포함되어 있습니다! URL이 깨졌습니다.');
+        console.error('❌ PATHNAME:', parsedUrl.pathname);
+        console.error('❌ 이 경우 Prisma가 DB 이름을 "postgres&connect_timeout=..."로 인식합니다.');
+        console.error('💡 Render에서 DATABASE_URL을 삭제하고 다시 추가하세요.');
+        console.error('💡 앞뒤 공백, 줄바꿈, 따옴표 없이 한 줄로 붙여넣으세요.');
+      }
+      
+      // SEARCH가 비어있는데 원본 URL에 ?가 있으면 파라미터가 PATHNAME에 포함된 것
+      if (!parsedUrl.search && dbUrl.includes('?')) {
+        console.error('❌ URL 파라미터가 PATHNAME에 포함되어 있습니다!');
+        console.error('❌ PATHNAME:', parsedUrl.pathname);
+        console.error('💡 Render에서 DATABASE_URL 형식을 확인하세요.');
+        console.error('💡 올바른 형식: postgresql://.../postgres?param1=value1&param2=value2');
+      }
     } catch (e) {
+      console.error('❌ URL 파싱 실패:', e);
       // URL 파싱 실패 시 정규식으로 파싱
       const urlMatch = dbUrl.match(/postgresql?:\/\/([^:]+):([^@]+)@([^:]+):(\d+)\/([^?]+)/);
       if (urlMatch) {
@@ -76,7 +132,8 @@ async function testConnection() {
     const host = parsedUrl?.hostname || 'unknown';
     const port = parsedUrl?.port || 'unknown';
     const user = parsedUrl?.username || 'unknown';
-    const database = parsedUrl?.pathname?.replace('/', '') || 'unknown';
+    // PATHNAME에서 ? 이후를 제거하여 DB 이름만 추출
+    const database = parsedUrl?.pathname?.replace('/', '').split('?')[0] || 'unknown';
     
     // Connection pool 파라미터 확인
     const connectionLimitMatch = dbUrl.match(/connection_limit=(\d+)/);

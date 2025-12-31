@@ -51,6 +51,26 @@ const validateDatabaseUrl = () => {
     console.log('   호스트:', url.hostname);
     console.log('   포트:', url.port || '5432');
     
+    // 🔍 진단: PATHNAME과 SEARCH 확인 (ChatGPT 제안)
+    console.log('🔍 URL 파싱 진단:');
+    console.log('   PATHNAME:', url.pathname); // "/postgres" 여야 함
+    console.log('   SEARCH:', url.search);     // "?sslmode=require&connect_timeout=..." 여야 함
+    
+    // PATHNAME에 ?가 포함되어 있으면 URL이 깨진 것
+    if (url.pathname.includes('?')) {
+      console.error('❌ PATHNAME에 ?가 포함되어 있습니다! URL이 깨졌습니다.');
+      console.error('❌ PATHNAME:', url.pathname);
+      console.error('💡 Render에서 DATABASE_URL을 삭제하고 다시 추가하세요.');
+      console.error('💡 앞뒤 공백, 줄바꿈, 따옴표 없이 한 줄로 붙여넣으세요.');
+    }
+    
+    // SEARCH가 비어있으면 파라미터가 PATHNAME에 포함된 것
+    if (!url.search && dbUrl.includes('?')) {
+      console.error('❌ URL 파라미터가 PATHNAME에 포함되어 있습니다!');
+      console.error('❌ PATHNAME:', url.pathname);
+      console.error('💡 Render에서 DATABASE_URL 형식을 확인하세요.');
+    }
+    
     // Session Pooler 사용자명 검증
     if (url.hostname.includes('pooler') && !url.username.includes('.')) {
       console.error('❌ Session Pooler를 사용 중이지만 사용자명이 잘못되었습니다!');
@@ -61,6 +81,7 @@ const validateDatabaseUrl = () => {
     }
   } catch (e) {
     console.warn('⚠️  DATABASE_URL 파싱 실패 (형식 확인 필요)');
+    console.error('⚠️  에러:', e);
   }
   
   // Connection Pooler 사용 중인지 확인
