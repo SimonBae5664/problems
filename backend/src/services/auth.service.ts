@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt';
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { prisma } from '../utils/prisma';
 import { User } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'default-secret';
 const JWT_EXPIRES_IN: string = process.env.JWT_EXPIRES_IN || '7d';
@@ -32,10 +33,15 @@ export class AuthService {
         });
       } catch (error: any) {
         console.error('사용자 생성 실패:', error);
-        // 데이터베이스 제약 조건 에러 처리 (P2002 = unique constraint violation)
-        if (error.code === 'P2002') {
-          // email 필드에 unique constraint가 있으므로 중복 이메일
-          throw new Error('이미 존재하는 이메일입니다.');
+        // Prisma 에러 타입으로 분기 (문자열 매칭보다 안전)
+        if (error instanceof PrismaClientKnownRequestError) {
+          // P2002 = Unique constraint violation (중복 이메일)
+          if (error.code === 'P2002') {
+            // email 필드에 unique constraint가 있으므로 중복 이메일
+            throw new Error('이미 존재하는 이메일입니다.');
+          }
+          // 기타 Prisma 에러 코드
+          console.error('Prisma error code:', error.code);
         }
         throw new Error(`사용자 생성 실패: ${error.message || '알 수 없는 오류'}`);
       }

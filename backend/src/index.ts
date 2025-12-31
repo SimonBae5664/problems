@@ -158,6 +158,9 @@ validateDatabaseUrl();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Trust proxy 설정 (Render 등 프록시 뒤에서 실행 시 실제 클라이언트 IP를 얻기 위해)
+app.set('trust proxy', 1);
+
 // CORS 설정
 const allowedOrigins = process.env.FRONTEND_URL 
   ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
@@ -197,10 +200,21 @@ app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
 
 // 요청 로그 미들웨어 (connection pool 문제 진단용)
+// 중복 요청 감지를 위해 경로, 시간, IP, 이메일(회원가입인 경우) 로깅
 app.use((req, res, next) => {
   const timestamp = new Date().toISOString();
-  const ip = req.ip || req.connection.remoteAddress || 'unknown';
-  console.log(`[${timestamp}] ${req.method} ${req.path} - IP: ${ip}`);
+  // trust proxy 설정 후 req.ip가 실제 클라이언트 IP를 반환
+  // x-forwarded-for 헤더도 확인 (여러 프록시를 거친 경우)
+  const forwardedFor = req.headers['x-forwarded-for'];
+  const ip = req.ip || (Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor) || req.connection.remoteAddress || 'unknown';
+  
+  // 회원가입 요청인 경우 이메일도 로깅 (중복 호출 감지용)
+  if (req.path === '/api/auth/register' && req.method === 'POST') {
+    const email = req.body?.email || 'unknown';
+    console.log(`[${timestamp}] ${req.method} ${req.path} - IP: ${ip} - Email: ${email}`);
+  } else {
+    console.log(`[${timestamp}] ${req.method} ${req.path} - IP: ${ip}`);
+  }
   next();
 });
 

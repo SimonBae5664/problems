@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { AuthService } from '../services/auth.service';
 import { validationResult } from 'express-validator';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 export class AuthController {
   static async register(req: Request, res: Response) {
@@ -29,16 +30,28 @@ export class AuthController {
       console.error('Registration error:', error);
       console.error('Error stack:', error.stack);
       
-      // Connection pool timeout 에러 처리
+      // Prisma 에러 타입으로 분기 (문자열 매칭보다 안전)
+      if (error instanceof PrismaClientKnownRequestError) {
+        // P2002 = Unique constraint violation (중복 이메일)
+        if (error.code === 'P2002') {
+          return res.status(409).json({ error: '이미 등록된 이메일입니다.' });
+        }
+        // 기타 Prisma 에러
+        console.error('Prisma error code:', error.code);
+      }
+      
+      // Connection pool timeout 에러 처리 (Prisma 에러 타입 + 문자열 매칭 fallback)
       if (error.message?.includes('Timed out fetching a new connection') ||
-          error.message?.includes('connection pool')) {
+          error.message?.includes('connection pool') ||
+          error.code === 'P1008' || // Prisma connection pool timeout 에러 코드
+          error.code === 'P1017') {  // Prisma server closed connection 에러 코드
         console.error('⚠️  Connection pool timeout - 요청이 너무 많거나 연결이 해제되지 않았습니다.');
         return res.status(503).json({ 
           error: '서버가 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해주세요.' 
         });
       }
       
-      // 이미 존재하는 사용자
+      // 이미 존재하는 사용자 (문자열 매칭 fallback)
       if (error.message === 'User already exists' || error.message.includes('이미 존재하는')) {
         return res.status(409).json({ error: '이미 등록된 이메일입니다.' });
       }
