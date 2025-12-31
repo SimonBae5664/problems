@@ -23,13 +23,26 @@ const getConnectionPoolConfig = () => {
 
 const poolConfig = getConnectionPoolConfig();
 
-// Prisma Client 설정 - Connection Pool 최적화
+// PrismaClient 싱글톤 패턴
+// 요청마다 새 PrismaClient를 만들지 않고 하나의 인스턴스만 사용
+// 이렇게 하면 connection pool이 효율적으로 관리되고 연결이 재사용됨
+const globalForPrisma = globalThis as unknown as {
+  prisma?: PrismaClient;
+};
+
 // 주의: datasources.url을 명시적으로 설정하지 않음
 // Prisma는 schema.prisma의 env("DATABASE_URL")을 자동으로 읽습니다
 // 명시적으로 설정하면 환경 변수와 충돌할 수 있습니다
-const prisma = new PrismaClient({
-  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-});
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  });
+
+// Development에서만 global에 저장 (Hot reload 시 재사용)
+if (process.env.NODE_ENV !== 'production') {
+  globalForPrisma.prisma = prisma;
+}
 
 // 서버 시작 시 데이터베이스 연결 테스트
 async function testConnection() {
@@ -184,9 +197,20 @@ async function testConnection() {
 testConnection().catch(console.error);
 
 // Graceful shutdown
+// 주의: 요청마다 $disconnect()를 호출하면 안 됩니다!
+// 서버 종료 시에만 연결을 끊어야 합니다.
 process.on('beforeExit', async () => {
   await prisma.$disconnect();
 });
 
-export { prisma };
+// SIGTERM, SIGINT 시그널 처리 (Docker, PM2 등에서 사용)
+process.on('SIGTERM', async () => {
+  await prisma.$disconnect();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  await prisma.$disconnect();
+  process.exit(0);
+});
 

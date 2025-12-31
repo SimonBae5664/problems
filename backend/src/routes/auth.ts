@@ -4,6 +4,7 @@ import { AuthController } from '../controllers/auth.controller';
 import { authenticateToken } from '../middleware/auth';
 import { registerValidator, loginValidator } from '../middleware/validators';
 import { Strategy as JwtStrategy, ExtractJwt } from 'passport-jwt';
+import { prisma } from '../utils/prisma';
 
 const router = Router();
 
@@ -16,7 +17,7 @@ passport.use(
     },
     async (payload, done) => {
       try {
-        const { prisma } = await import('../utils/prisma');
+        // 싱글톤 prisma 인스턴스 사용 (동적 import 불필요)
         const user = await prisma.user.findUnique({
           where: { id: payload.userId },
         });

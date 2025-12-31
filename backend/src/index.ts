@@ -16,6 +16,7 @@ import problemRoutes from './routes/problems';
 import commentRoutes from './routes/comments';
 import jobRoutes from './routes/jobs';
 import fileRoutes from './routes/files';
+import { prisma } from './utils/prisma';
 
 // Development에서만 .env 파일 로드 (production에서는 환경 변수 사용)
 // override: false로 설정하여 환경 변수가 .env를 덮어쓰도록 함
@@ -196,7 +197,7 @@ app.get('/health', (req, res) => {
 // Database health check endpoint
 app.get('/health/db', async (req, res) => {
   try {
-    const { prisma } = await import('./utils/prisma');
+    // 싱글톤 prisma 인스턴스 사용 (동적 import 불필요)
     // 간단한 쿼리로 연결 테스트
     await prisma.$queryRaw`SELECT 1`;
     res.json({ 
