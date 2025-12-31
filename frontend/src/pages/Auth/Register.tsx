@@ -71,7 +71,7 @@ export default function Register() {
         <h1>회원가입</h1>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="name">이름</label>
+            <label htmlFor="name">이름 (실명)</label>
             <input
               type="text"
               id="name"
@@ -80,6 +80,7 @@ export default function Register() {
               required
               minLength={2}
               maxLength={50}
+              placeholder="홍길동"
             />
           </div>
           <div className="form-group">
@@ -90,10 +91,11 @@ export default function Register() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              placeholder="example@email.com"
             />
           </div>
           <div className="form-group">
-            <label htmlFor="username">아이디</label>
+            <label htmlFor="username">아이디 *</label>
             <input
               type="text"
               id="username"
@@ -103,8 +105,9 @@ export default function Register() {
               minLength={3}
               maxLength={20}
               pattern="[a-zA-Z0-9_]+"
+              placeholder="myusername"
             />
-            <small>3-20자, 영문/숫자/언더스코어(_)만 사용 가능</small>
+            <small>3-20자, 영문/숫자/언더스코어(_)만 사용 가능 (서비스에서 표시되는 이름)</small>
           </div>
           <div className="form-group">
             <label htmlFor="password">비밀번호</label>
