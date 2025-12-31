@@ -6,6 +6,8 @@ datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
+  // Prisma generate는 DATABASE_URL 없이도 작동하지만, 
+  // 빌드 시점에 환경 변수가 없으면 경고가 발생할 수 있음
 }
 
 model User {
