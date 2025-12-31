@@ -157,20 +157,38 @@ async function testConnection() {
       console.warn('⚠️  Supabase → Settings → Database → Connection Pooling → Session mode URL을 확인하세요.');
     }
     
-    // 연결 타임아웃 설정
-    const startTime = Date.now();
-    await Promise.race([
-      prisma.$connect(),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Connection timeout after 10 seconds')), 10000)
-      )
-    ]);
-    const connectTime = Date.now() - startTime;
-    console.log(`✅ 데이터베이스 연결 성공 (${connectTime}ms)`);
+    // DB 연결 테스트 (재시도 로직, 하드 타임아웃 제거)
+    // Render/Supabase는 간헐적으로 첫 연결이 느려질 수 있으므로 재시도 필요
+    const maxRetries = 10;
+    let lastError: any = null;
     
-    // 간단한 쿼리로 연결 확인
-    await prisma.$queryRaw`SELECT 1`;
-    console.log('✅ 데이터베이스 쿼리 테스트 성공');
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        const startTime = Date.now();
+        await prisma.$connect();
+        const connectTime = Date.now() - startTime;
+        console.log(`✅ 데이터베이스 연결 성공 (${connectTime}ms, 시도 ${i + 1}/${maxRetries})`);
+        
+        // 간단한 쿼리로 연결 확인
+        await prisma.$queryRaw`SELECT 1`;
+        console.log('✅ 데이터베이스 쿼리 테스트 성공');
+        return; // 성공 시 함수 종료
+      } catch (error: any) {
+        lastError = error;
+        console.warn(`⚠️  DB 연결 실패 (시도 ${i + 1}/${maxRetries}):`, error.message);
+        
+        // 마지막 시도가 아니면 재시도
+        if (i < maxRetries - 1) {
+          const backoffDelay = 1000 * (i + 1); // 1초, 2초, 3초... 증가
+          console.log(`   ${backoffDelay}ms 후 재시도...`);
+          await new Promise(resolve => setTimeout(resolve, backoffDelay));
+        }
+      }
+    }
+    
+    // 모든 재시도 실패
+    console.error('❌ 데이터베이스 연결 실패: 모든 재시도 실패');
+    throw lastError;
   } catch (error: any) {
     console.error('❌ 데이터베이스 연결 실패:', error.message);
     

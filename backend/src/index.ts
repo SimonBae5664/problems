@@ -112,26 +112,38 @@ const validateDatabaseUrl = () => {
     console.error('⚠️  에러:', e);
   }
   
-  // Connection Pooler 사용 중인지 확인
-  if (dbUrl.includes(':6543') || dbUrl.includes('pooler')) {
-    // Session Pooler vs Transaction Pooler 구분
-    if (dbUrl.includes('pooler.supabase.com') && !dbUrl.includes('transaction')) {
-      console.log('✅ Session Pooler를 사용하고 있습니다. (포트 6543, IPv4 지원)');
-      console.log('✅ Session Pooler는 IPv4 네트워크와 호환되며 연결 풀링을 제공합니다.');
-      console.log('✅ 최대 200개 동시 연결 지원');
-    } else if (dbUrl.includes('transaction')) {
-      console.log('⚠️  Transaction Pooler를 사용하고 있습니다.');
-      console.warn('⚠️  Transaction Pooler는 IPv6만 지원합니다.');
-      console.warn('⚠️  Render의 IPv4 네트워크와 호환되지 않을 수 있습니다.');
-      console.warn('💡 Session Pooler 사용을 권장합니다 (IPv4 지원).');
-    } else {
-      console.log('✅ Connection Pooler를 사용하고 있습니다. (포트 6543)');
+  // Connection Pooler 사용 중인지 확인 (실제 포트 번호 확인)
+  try {
+    const url = new URL(dbUrl);
+    const port = url.port || (dbUrl.includes(':6543') ? '6543' : '5432');
+    
+    if (dbUrl.includes('pooler.supabase.com')) {
+      if (port === '6543') {
+        // Transaction Pooler (포트 6543)
+        if (dbUrl.includes('?pgbouncer=true')) {
+          console.log('✅ Transaction Pooler를 사용하고 있습니다. (포트 6543, pgbouncer=true)');
+          console.log('✅ Prisma와 호환되는 설정입니다.');
+        } else {
+          console.log('✅ Transaction Pooler를 사용하고 있습니다. (포트 6543)');
+          console.warn('⚠️  Transaction Pooler는 IPv6만 지원합니다.');
+          console.warn('⚠️  Render의 IPv4 네트워크와 호환되지 않을 수 있습니다.');
+          console.warn('💡 Session Pooler (포트 5432) 또는 pgbouncer=true 추가를 권장합니다.');
+        }
+      } else if (port === '5432') {
+        // Session Pooler (포트 5432)
+        console.log('✅ Session Pooler를 사용하고 있습니다. (포트 5432, IPv4 지원)');
+        console.log('✅ Session Pooler는 IPv4 네트워크와 호환되며 연결 풀링을 제공합니다.');
+        console.log('✅ 최대 200개 동시 연결 지원');
+      }
+    } else if (dbUrl.includes(':6543') || dbUrl.includes('pooler')) {
+      console.log(`✅ Connection Pooler를 사용하고 있습니다. (포트 ${port})`);
     }
     
     if (!directUrl) {
       console.warn('⚠️  DIRECT_URL이 설정되지 않았습니다.');
-      console.warn('⚠️  Prisma는 Connection Pooler와 Direct connection을 모두 필요로 합니다.');
-      console.warn('📖 Render에서 DIRECT_URL 환경 변수를 추가하세요.');
+      console.warn('ℹ️  DIRECT_URL은 Prisma 마이그레이션/CLI 작업 시 유용합니다.');
+      console.warn('ℹ️  런타임 연결 실패의 직접 원인은 아닙니다.');
+      console.warn('📖 필요 시 Render에서 DIRECT_URL 환경 변수를 추가하세요.');
       console.warn('📖 DIRECT_URL은 포트 5432를 사용하는 Direct connection URL이어야 합니다.');
     } else {
       console.log('✅ DIRECT_URL이 설정되어 있습니다.');
