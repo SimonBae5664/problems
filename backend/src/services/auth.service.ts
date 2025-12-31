@@ -14,19 +14,12 @@ export interface AuthResult {
 export class AuthService {
   static async register(email: string, password: string, name: string): Promise<AuthResult> {
     try {
-      // Check if user already exists
-      const existingUser = await prisma.user.findUnique({
-        where: { email },
-      });
-
-      if (existingUser) {
-        throw new Error('User already exists');
-      }
-
       // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      // Create user
+      // Create user directly - DB unique constraint will handle duplicates
+      // 이렇게 하면 DB 왕복이 1번으로 줄어서 connection pool 압박이 크게 감소합니다
+      // findUnique + create (2번) → create만 (1번)
       let user;
       try {
         user = await prisma.user.create({
@@ -39,8 +32,9 @@ export class AuthService {
         });
       } catch (error: any) {
         console.error('사용자 생성 실패:', error);
-        // 데이터베이스 제약 조건 에러 처리
+        // 데이터베이스 제약 조건 에러 처리 (P2002 = unique constraint violation)
         if (error.code === 'P2002') {
+          // email 필드에 unique constraint가 있으므로 중복 이메일
           throw new Error('이미 존재하는 이메일입니다.');
         }
         throw new Error(`사용자 생성 실패: ${error.message || '알 수 없는 오류'}`);

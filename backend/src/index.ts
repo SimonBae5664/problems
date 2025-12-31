@@ -196,6 +196,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
 
+// 요청 로그 미들웨어 (connection pool 문제 진단용)
+app.use((req, res, next) => {
+  const timestamp = new Date().toISOString();
+  const ip = req.ip || req.connection.remoteAddress || 'unknown';
+  console.log(`[${timestamp}] ${req.method} ${req.path} - IP: ${ip}`);
+  next();
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/verification', verificationRoutes);

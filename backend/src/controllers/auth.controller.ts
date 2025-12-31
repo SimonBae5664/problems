@@ -29,6 +29,15 @@ export class AuthController {
       console.error('Registration error:', error);
       console.error('Error stack:', error.stack);
       
+      // Connection pool timeout 에러 처리
+      if (error.message?.includes('Timed out fetching a new connection') ||
+          error.message?.includes('connection pool')) {
+        console.error('⚠️  Connection pool timeout - 요청이 너무 많거나 연결이 해제되지 않았습니다.');
+        return res.status(503).json({ 
+          error: '서버가 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해주세요.' 
+        });
+      }
+      
       // 이미 존재하는 사용자
       if (error.message === 'User already exists' || error.message.includes('이미 존재하는')) {
         return res.status(409).json({ error: '이미 등록된 이메일입니다.' });
