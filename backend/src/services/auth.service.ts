@@ -76,35 +76,37 @@ export class AuthService {
         throw new Error(`토큰 생성 실패: ${error.message || '알 수 없는 오류'}`);
       }
 
-      // Remove password from user object
-      const { password: _, ...userWithoutPassword } = user;
-
-      // 회원가입 성공 응답을 먼저 반환하기 위해 결과 준비
-      const result = {
-        user: userWithoutPassword,
-        token,
-      };
-
-      // 이메일 인증 코드 생성 및 이메일 발송 (비동기, 실패해도 회원가입은 성공)
-      // 이메일 발송은 응답 후에 처리하여 사용자 대기 시간을 줄임
-      setImmediate(async () => {
+      // 이메일 인증 코드 생성 및 이메일 발송 (필수 - 실패 시 회원가입 실패)
+      // 이메일 발송이 성공해야만 회원가입이 완료됨
+      try {
+        const { EmailService } = await import('./email.service');
+        const verificationCode = await EmailService.createVerificationCode(user.id);
+        await EmailService.sendVerificationEmail(email, name, verificationCode);
+        console.log('✅ 이메일 인증 코드 발송 성공');
+      } catch (error: any) {
+        console.error('이메일 발송 실패:', error);
+        
+        // 이메일 발송 실패 시 생성된 사용자 삭제 (롤백)
         try {
-          const { EmailService } = await import('./email.service');
-          const verificationCode = await EmailService.createVerificationCode(user.id);
-          await EmailService.sendVerificationEmail(email, name, verificationCode);
-        } catch (error: any) {
-          console.error('이메일 발송 실패 (회원가입은 성공):', error);
-          // 이메일 발송 실패해도 사용자는 생성됨 (나중에 재발송 가능)
-          if (error.message?.includes('재전송 제한')) {
-            console.warn('재전송 제한으로 인해 이메일을 발송할 수 없습니다.');
-          }
-          if (error.code === 'ETIMEDOUT') {
-            console.warn('이메일 서버 연결 타임아웃 - SMTP 설정을 확인하세요.');
-          }
+          await prisma.user.delete({
+            where: { id: user.id },
+          });
+          console.log('⚠️  이메일 발송 실패로 인해 생성된 사용자를 삭제했습니다.');
+        } catch (deleteError: any) {
+          console.error('⚠️  사용자 삭제 실패 (수동 정리 필요):', deleteError);
         }
-      });
+        
+        // 에러 메시지 처리
+        if (error.message?.includes('재전송 제한')) {
+          throw new Error('재전송 제한으로 인해 이메일을 발송할 수 없습니다. 잠시 후 다시 시도해주세요.');
+        }
+        if (error.code === 'ETIMEDOUT' || error.code === 'ECONNREFUSED') {
+          throw new Error('이메일 서버에 연결할 수 없습니다. 잠시 후 다시 시도해주세요.');
+        }
+        throw new Error(`이메일 발송 실패: ${error.message || '알 수 없는 오류'}`);
+      }
 
-      // 자동 인증 시도 (신원 인증) - 비동기 처리
+      // 자동 인증 시도 (신원 인증) - 비동기 처리 (실패해도 회원가입은 성공)
       setImmediate(async () => {
         try {
           const { VerificationService } = await import('./verification.service');
@@ -115,8 +117,14 @@ export class AuthService {
         }
       });
 
-      // 회원가입 성공 응답 반환 (이메일 발송과 독립적으로)
-      return result;
+      // Remove password from user object
+      const { password: _, ...userWithoutPassword } = user;
+
+      // 회원가입 성공 응답 반환 (이메일 발송 성공 후)
+      return {
+        user: userWithoutPassword,
+        token,
+      };
     } catch (error: any) {
       // 이미 처리된 에러는 그대로 throw
       if (error.message === 'User already exists' || 

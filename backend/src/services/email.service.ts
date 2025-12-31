@@ -36,9 +36,10 @@ const createTransporter = () => {
       pass: emailPassword,
     },
     // 타임아웃 설정 (Render 환경에서 SMTP 연결 안정성 향상)
-    connectionTimeout: 10000, // 10초
-    greetingTimeout: 10000,    // 10초
-    socketTimeout: 20000,      // 20초
+    // Render에서 SMTP 서버로의 네트워크가 느릴 수 있으므로 타임아웃을 길게 설정
+    connectionTimeout: 30000, // 30초 (Gmail 등이 느릴 수 있음)
+    greetingTimeout: 30000,    // 30초
+    socketTimeout: 60000,      // 60초
   });
 };
 
