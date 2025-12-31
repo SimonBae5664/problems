@@ -137,6 +137,13 @@ const validateDatabaseUrl = () => {
       }
     } else if (dbUrl.includes(':6543') || dbUrl.includes('pooler')) {
       console.log(`✅ Connection Pooler를 사용하고 있습니다. (포트 ${port})`);
+    } else if (dbUrl.includes(':5432') && !dbUrl.includes('pooler')) {
+      console.log('ℹ️  Direct connection (포트 5432)을 사용하고 있습니다.');
+      console.log('💡 Session Pooler 사용을 권장합니다:');
+      console.log('   - IPv4 지원 (Render와 호환)');
+      console.log('   - 연결 풀링 (최대 200개 동시 연결)');
+      console.log('   - 성능 향상');
+      console.log('   - Supabase → Settings → Database → Connection Pooling → Session mode');
     }
     
     if (!directUrl) {
@@ -148,13 +155,8 @@ const validateDatabaseUrl = () => {
     } else {
       console.log('✅ DIRECT_URL이 설정되어 있습니다.');
     }
-  } else if (dbUrl.includes(':5432')) {
-    console.log('ℹ️  Direct connection (포트 5432)을 사용하고 있습니다.');
-    console.log('💡 Session Pooler 사용을 권장합니다:');
-    console.log('   - IPv4 지원 (Render와 호환)');
-    console.log('   - 연결 풀링 (최대 200개 동시 연결)');
-    console.log('   - 성능 향상');
-    console.log('   - Supabase → Settings → Database → Connection Pooling → Session mode');
+  } catch (e) {
+    console.warn('⚠️  Connection Pooler 확인 실패 (URL 파싱 오류)');
   }
   
   // URL에 잘못된 파라미터가 있는지 확인
