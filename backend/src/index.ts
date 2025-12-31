@@ -1,3 +1,9 @@
+// IPv4 우선 DNS 설정 (Session Pooler IPv4 호환성)
+// Node.js가 IPv6를 먼저 시도하는 것을 방지하고 IPv4를 우선시
+import dns from 'node:dns';
+dns.setDefaultResultOrder('ipv4first');
+console.log('🌐 DNS order:', dns.getDefaultResultOrder());
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -11,7 +17,11 @@ import commentRoutes from './routes/comments';
 import jobRoutes from './routes/jobs';
 import fileRoutes from './routes/files';
 
-dotenv.config();
+// Development에서만 .env 파일 로드 (production에서는 환경 변수 사용)
+// override: false로 설정하여 환경 변수가 .env를 덮어쓰도록 함
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config();
+}
 
 // 데이터베이스 연결 문자열 검증 및 변환
 const validateDatabaseUrl = () => {
@@ -27,12 +37,47 @@ const validateDatabaseUrl = () => {
   // URL 형식 검증
   if (!dbUrl.startsWith('postgresql://') && !dbUrl.startsWith('postgres://')) {
     console.error('❌ DATABASE_URL은 postgresql:// 또는 postgres://로 시작해야 합니다.');
-    console.error('현재 값:', dbUrl.substring(0, 50) + '...');
+    // 비밀번호 마스킹
+    const masked = dbUrl.length > 50 ? dbUrl.substring(0, 50) + '...' : dbUrl.replace(/:([^:@]+)@/, ':****@');
+    console.error('현재 값:', masked);
+  }
+  
+  // URL 파싱하여 사용자명 확인 (비밀번호 마스킹)
+  try {
+    const url = new URL(dbUrl);
+    console.log('🔍 DATABASE_URL 검증:');
+    console.log('   사용자명:', url.username);
+    console.log('   호스트:', url.hostname);
+    console.log('   포트:', url.port || '5432');
+    
+    // Session Pooler 사용자명 검증
+    if (url.hostname.includes('pooler') && !url.username.includes('.')) {
+      console.error('❌ Session Pooler를 사용 중이지만 사용자명이 잘못되었습니다!');
+      console.error('❌ 올바른 형식: postgres.<project-ref>');
+      console.error('❌ 현재 사용자명:', url.username);
+      console.error('💡 Supabase → Settings → Database → Connection Pooling → Session mode');
+      console.error('💡 Copy 버튼으로 URL을 복사하세요.');
+    }
+  } catch (e) {
+    console.warn('⚠️  DATABASE_URL 파싱 실패 (형식 확인 필요)');
   }
   
   // Connection Pooler 사용 중인지 확인
   if (dbUrl.includes(':6543') || dbUrl.includes('pooler')) {
-    console.log('✅ Connection Pooler를 사용하고 있습니다.');
+    // Session Pooler vs Transaction Pooler 구분
+    if (dbUrl.includes('pooler.supabase.com') && !dbUrl.includes('transaction')) {
+      console.log('✅ Session Pooler를 사용하고 있습니다. (포트 6543, IPv4 지원)');
+      console.log('✅ Session Pooler는 IPv4 네트워크와 호환되며 연결 풀링을 제공합니다.');
+      console.log('✅ 최대 200개 동시 연결 지원');
+    } else if (dbUrl.includes('transaction')) {
+      console.log('⚠️  Transaction Pooler를 사용하고 있습니다.');
+      console.warn('⚠️  Transaction Pooler는 IPv6만 지원합니다.');
+      console.warn('⚠️  Render의 IPv4 네트워크와 호환되지 않을 수 있습니다.');
+      console.warn('💡 Session Pooler 사용을 권장합니다 (IPv4 지원).');
+    } else {
+      console.log('✅ Connection Pooler를 사용하고 있습니다. (포트 6543)');
+    }
+    
     if (!directUrl) {
       console.warn('⚠️  DIRECT_URL이 설정되지 않았습니다.');
       console.warn('⚠️  Prisma는 Connection Pooler와 Direct connection을 모두 필요로 합니다.');
@@ -43,7 +88,11 @@ const validateDatabaseUrl = () => {
     }
   } else if (dbUrl.includes(':5432')) {
     console.log('ℹ️  Direct connection (포트 5432)을 사용하고 있습니다.');
-    console.log('ℹ️  Connection Pooler 사용을 권장하지만, Direct connection도 작동합니다.');
+    console.log('💡 Session Pooler 사용을 권장합니다:');
+    console.log('   - IPv4 지원 (Render와 호환)');
+    console.log('   - 연결 풀링 (최대 200개 동시 연결)');
+    console.log('   - 성능 향상');
+    console.log('   - Supabase → Settings → Database → Connection Pooling → Session mode');
   }
   
   // URL에 잘못된 파라미터가 있는지 확인
@@ -54,10 +103,30 @@ const validateDatabaseUrl = () => {
   }
   
   // Connection pool 파라미터 확인
-  if (!dbUrl.includes('connection_limit') && !dbUrl.includes('pool_timeout')) {
-    console.warn('⚠️  Connection pool 파라미터가 없습니다.');
+  const connectionLimitMatch = dbUrl.match(/connection_limit=(\d+)/);
+  const poolTimeoutMatch = dbUrl.match(/pool_timeout=(\d+)/);
+  
+  if (!connectionLimitMatch || !poolTimeoutMatch) {
+    console.warn('⚠️  Connection pool 파라미터가 없거나 불완전합니다.');
     console.warn('⚠️  연결 풀 타임아웃을 방지하려면 다음 파라미터를 추가하세요:');
-    console.warn('⚠️  ?connection_limit=10&pool_timeout=20');
+    console.warn('⚠️  ?connection_limit=1&pool_timeout=30 (테스트용, 작은 값)');
+    console.warn('⚠️  또는 ?connection_limit=5&pool_timeout=20 (프로덕션용)');
+  } else {
+    const limit = connectionLimitMatch[1];
+    const timeout = poolTimeoutMatch[1];
+    console.log(`✅ Connection pool 설정: limit=${limit}, timeout=${timeout}초`);
+    
+    // connection_limit이 너무 크면 경고
+    if (parseInt(limit, 10) > 10) {
+      console.warn('⚠️  connection_limit이 10보다 큽니다.');
+      console.warn('⚠️  Supabase 무료 플랜 제한을 고려하여 5 이하로 권장합니다.');
+    }
+    
+    // connection_limit이 1이면 테스트 모드
+    if (parseInt(limit, 10) === 1) {
+      console.log('ℹ️  connection_limit=1로 설정되어 있습니다. (테스트 모드)');
+      console.log('ℹ️  단일 연결로 문제를 격리할 수 있습니다.');
+    }
   }
 };
 

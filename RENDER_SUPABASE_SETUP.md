@@ -14,20 +14,31 @@ Render는 자체 PostgreSQL 데이터베이스를 제공하지만, **Supabase를
    - 좌측 메뉴 → **Settings** 클릭
    - **Database** 메뉴 클릭
 
-3. **Connection string 복사**
-   - **Connection string** 섹션 찾기
-   - **URI** 탭 선택
-   - 연결 문자열 복사
-   
-   형식 예시:
-   ```
-   postgresql://postgres:[YOUR-PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres
-   ```
+3. **Connection Pooling 설정**
+   - **Connection Pooling** 섹션 찾기
+   - **Session mode** 선택 (⚠️ 중요: Transaction mode는 IPv6만 지원)
+   - **Connection string** 섹션으로 이동
 
+4. **Session Pooler URL 복사**
+   - **Connection string** 섹션에서 **Session mode** 탭 선택
+   - **URI** 형식의 연결 문자열 복사
+   
+   형식 예시 (Session Pooler):
+   ```
+   postgresql://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?connection_limit=5&pool_timeout=20
+   ```
+   
+   또는 Direct connection (포트 5432):
+   ```
+   postgresql://postgres:[YOUR-PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres?connection_limit=5&pool_timeout=20
+   ```
+   
    **중요**: 
+   - **Session Pooler 권장**: IPv4 지원, 연결 풀링 (최대 200개), Render와 호환
+   - **Transaction Pooler 비권장**: IPv6만 지원, Render의 IPv4 네트워크와 호환 안 됨
    - `[YOUR-PASSWORD]`는 실제 데이터베이스 비밀번호
    - 비밀번호에 특수문자가 있으면 URL 인코딩 필요할 수 있음
-   - Supabase 대시보드에서 제공하는 연결 문자열을 그대로 사용하는 것이 가장 안전
+   - `connection_limit=5&pool_timeout=20` 파라미터 추가 권장
 
 ### 2단계: Render에서 환경 변수 추가
 
@@ -43,19 +54,33 @@ Render는 자체 PostgreSQL 데이터베이스를 제공하지만, **Supabase를
    - **Add Environment Variable** 버튼 클릭
    - 또는 **+ Add** 버튼 클릭
 
-4. **DATABASE_URL 입력**
+4. **DATABASE_URL 입력 (Session Pooler 사용 시)**
    - **Key**: `DATABASE_URL` 입력
-   - **Value**: Supabase에서 복사한 연결 문자열 붙여넣기
+   - **Value**: Supabase에서 복사한 **Session Pooler** 연결 문자열 붙여넣기
      ```
-     postgresql://postgres:your-password@db.your-project.supabase.co:5432/postgres
+     postgresql://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?connection_limit=5&pool_timeout=20
      ```
    - **Save** 클릭
+   
+   **Session Pooler URL 형식:**
+   - 호스트: `aws-0-[REGION].pooler.supabase.com` (또는 `aws-1-[REGION].pooler.supabase.com`)
+   - 포트: `6543`
+   - 사용자: `postgres.[PROJECT-REF]` (프로젝트 참조 포함)
+   - 파라미터: `?connection_limit=5&pool_timeout=20` (권장)
 
-5. **DIRECT_URL 추가 (선택사항, 권장)**
-   - Prisma 사용 시 `DIRECT_URL`도 필요할 수 있음
+5. **DIRECT_URL 추가 (필수)**
+   - Prisma는 Connection Pooler와 Direct connection을 모두 필요로 합니다
    - **Key**: `DIRECT_URL`
-   - **Value**: `DATABASE_URL`과 동일한 값
+   - **Value**: **Direct connection URL** (포트 5432 사용)
+     ```
+     postgresql://postgres:[PASSWORD]@db.[PROJECT-REF].supabase.co:5432/postgres?connection_limit=1
+     ```
    - **Save** 클릭
+   
+   **Direct connection URL 가져오기:**
+   - Supabase → Settings → Database → Connection string
+   - **Direct connection** 탭 선택
+   - URI 형식 복사
 
 ### 3단계: 추가 환경 변수 설정
 
