@@ -87,7 +87,7 @@ export default function ProblemList() {
                 </p>
                 {problem.description && <p className="problem-description">{problem.description}</p>}
                 <div className="problem-footer">
-                  <span>{problem.submittedBy?.name}</span>
+                  <span>{problem.submittedBy?.username}</span>
                   <span>{problem._count?.comments || 0} 댓글</span>
                 </div>
               </Link>

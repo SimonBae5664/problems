@@ -4,7 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import './Auth.css';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,16 +17,11 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await login(email, password);
+      await login(username, password);
       navigate('/');
     } catch (err: any) {
-      const errorMessage = err.response?.data?.error || 'Login failed';
+      const errorMessage = err.response?.data?.error || '로그인에 실패했습니다.';
       setError(errorMessage);
-      
-      // 이메일 인증 관련 에러인 경우 추가 안내
-      if (errorMessage.includes('이메일 인증')) {
-        setError(`${errorMessage} 이메일을 확인하시거나 인증 이메일을 재발송해주세요.`);
-      }
     } finally {
       setLoading(false);
     }
@@ -38,12 +33,12 @@ export default function Login() {
         <h1>로그인</h1>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="email">이메일</label>
+            <label htmlFor="username">아이디</label>
             <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type="text"
+              id="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               required
             />
           </div>

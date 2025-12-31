@@ -6,10 +6,10 @@ import './Auth.css';
 export default function Register() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -17,8 +17,8 @@ export default function Register() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setSuccess(false);
 
+    // 클라이언트 측 검증
     if (password !== confirmPassword) {
       setError('비밀번호가 일치하지 않습니다');
       return;
@@ -29,35 +29,33 @@ export default function Register() {
       return;
     }
 
+    if (username.length < 3 || username.length > 20) {
+      setError('아이디는 3자 이상 20자 이하여야 합니다');
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+      setError('아이디는 영문, 숫자, 언더스코어(_)만 사용할 수 있습니다');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      console.log('회원가입 시도:', { email, name });
-      await register(email, password, name);
-      setSuccess(true);
-      // 이메일 인증 코드 입력 페이지로 리다이렉트
-      setTimeout(() => {
-        navigate(`/verify-email?email=${encodeURIComponent(email)}`);
-      }, 2000);
+      await register(name, email, username, password);
+      navigate('/');
     } catch (err: any) {
-      console.error('회원가입 에러:', err);
-      console.error('에러 응답:', err.response);
-      console.error('에러 요청 URL:', err.config?.url);
-      
       let errorMessage = '회원가입에 실패했습니다.';
       
       if (err.response) {
-        // 서버에서 반환한 에러
         errorMessage = err.response.data?.error || err.response.data?.message || errorMessage;
       } else if (err.request) {
-        // 요청은 보냈지만 응답을 받지 못함 (네트워크 에러)
         if (err.message?.includes('hostname') || err.message?.includes('could not be found')) {
           errorMessage = '서버를 찾을 수 없습니다. API URL 설정을 확인해주세요.';
         } else {
           errorMessage = '서버에 연결할 수 없습니다. 네트워크를 확인해주세요.';
         }
       } else {
-        // 요청 설정 중 에러
         errorMessage = err.message || errorMessage;
       }
       
@@ -80,6 +78,8 @@ export default function Register() {
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
+              minLength={2}
+              maxLength={50}
             />
           </div>
           <div className="form-group">
@@ -91,6 +91,20 @@ export default function Register() {
               onChange={(e) => setEmail(e.target.value)}
               required
             />
+          </div>
+          <div className="form-group">
+            <label htmlFor="username">아이디</label>
+            <input
+              type="text"
+              id="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              minLength={3}
+              maxLength={20}
+              pattern="[a-zA-Z0-9_]+"
+            />
+            <small>3-20자, 영문/숫자/언더스코어(_)만 사용 가능</small>
           </div>
           <div className="form-group">
             <label htmlFor="password">비밀번호</label>
@@ -115,32 +129,14 @@ export default function Register() {
             />
           </div>
           {error && <div className="error-message">{error}</div>}
-          {success && (
-            <div style={{ 
-              padding: '15px', 
-              backgroundColor: '#e8f5e9', 
-              borderRadius: '5px', 
-              marginBottom: '15px',
-              color: '#2e7d32'
-            }}>
-              <strong>회원가입이 완료되었습니다!</strong>
-              <p style={{ margin: '10px 0 0 0', fontSize: '14px' }}>
-                이메일로 인증 코드를 발송했습니다. 이메일을 확인하여 인증을 완료해주세요.
-                <br />
-                잠시 후 인증 페이지로 이동합니다...
-              </p>
-            </div>
-          )}
-          <button type="submit" disabled={loading || success} className="btn-primary">
-            {loading ? '가입 중...' : success ? '가입 완료' : '회원가입'}
+          <button type="submit" disabled={loading} className="btn-primary">
+            {loading ? '가입 중...' : '회원가입'}
           </button>
         </form>
 
-        {!success && (
-          <p className="auth-link">
-            이미 계정이 있으신가요? <Link to="/login">로그인</Link>
-          </p>
-        )}
+        <p className="auth-link">
+          이미 계정이 있으신가요? <Link to="/login">로그인</Link>
+        </p>
       </div>
     </div>
   );

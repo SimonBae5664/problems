@@ -45,7 +45,7 @@ export default function ProblemDetail() {
         <div className="problem-meta">
           <span className="subject">{problem.subject}</span>
           {problem.difficulty && <span className="difficulty">{problem.difficulty}</span>}
-          <span className="author">작성자: {problem.submittedBy?.name}</span>
+          <span className="author">작성자: {problem.submittedBy?.username}</span>
         </div>
       </div>
 

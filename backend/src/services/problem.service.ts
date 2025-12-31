@@ -1,6 +1,6 @@
 import { prisma } from '../utils/prisma';
 import { VerificationService } from './verification.service';
-import { ProblemStatus, Subject, Difficulty } from '@prisma/client';
+import { ProblemStatus, Subject, Difficulty, Prisma } from '@prisma/client';
 
 export interface CreateProblemData {
   title: string;
@@ -37,9 +37,10 @@ export class ProblemService {
         submittedBy: {
           select: {
             id: true,
+            username: true,
             name: true,
             email: true,
-          },
+          } as Prisma.UserSelect,
         },
       },
     });
@@ -89,8 +90,9 @@ export class ProblemService {
           submittedBy: {
             select: {
               id: true,
+              username: true,
               name: true,
-            },
+            } as Prisma.UserSelect,
           },
           _count: {
             select: {
@@ -123,15 +125,16 @@ export class ProblemService {
         submittedBy: {
           select: {
             id: true,
+            username: true,
             name: true,
             email: true,
-          },
+          } as Prisma.UserSelect,
         },
         reviewedBy: {
           select: {
             id: true,
             name: true,
-          },
+          } as Prisma.UserSelect,
         },
         _count: {
           select: {
@@ -207,9 +210,10 @@ export class ProblemService {
           submittedBy: {
             select: {
               id: true,
+              username: true,
               name: true,
               email: true,
-            },
+            } as Prisma.UserSelect,
           },
         },
       }),
@@ -248,9 +252,10 @@ export class ProblemService {
         submittedBy: {
           select: {
             id: true,
+            username: true,
             name: true,
             email: true,
-          },
+          } as Prisma.UserSelect,
         },
       },
     });
@@ -284,9 +289,10 @@ export class ProblemService {
         submittedBy: {
           select: {
             id: true,
+            username: true,
             name: true,
             email: true,
-          },
+          } as Prisma.UserSelect,
         },
       },
     });

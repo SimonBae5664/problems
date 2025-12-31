@@ -155,7 +155,7 @@ function CommentItem({
   return (
     <div className="comment-item">
       <div className="comment-header">
-        <span className="comment-author">{comment.author.name}</span>
+        <span className="comment-author">{comment.author.username}</span>
         <span className="comment-date">{new Date(comment.createdAt).toLocaleDateString()}</span>
       </div>
       <div className="comment-content">{comment.content}</div>
@@ -191,7 +191,7 @@ function CommentItem({
           {comment.replies.map((reply) => (
             <div key={reply.id} className="reply-item">
               <div className="reply-header">
-                <span className="reply-author">{reply.author.name}</span>
+                <span className="reply-author">{reply.author.username}</span>
                 <span className="reply-date">{new Date(reply.createdAt).toLocaleDateString()}</span>
               </div>
               <div className="reply-content">{reply.content}</div>

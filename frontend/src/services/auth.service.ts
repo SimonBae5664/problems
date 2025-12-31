@@ -2,18 +2,24 @@ import api from './api';
 import { AuthResponse, User } from '../types';
 
 export const authService = {
-  async register(email: string, password: string, name: string): Promise<AuthResponse> {
+  async register(
+    name: string,
+    email: string,
+    username: string,
+    password: string
+  ): Promise<AuthResponse> {
     const response = await api.post<AuthResponse>('/api/auth/register', {
-      email,
-      password,
       name,
+      email,
+      username,
+      password,
     });
     return response.data;
   },
 
-  async login(email: string, password: string): Promise<AuthResponse> {
+  async login(username: string, password: string): Promise<AuthResponse> {
     const response = await api.post<AuthResponse>('/api/auth/login', {
-      email,
+      username,
       password,
     });
     return response.data;
@@ -41,26 +47,6 @@ export const authService = {
   setAuth(authResponse: AuthResponse) {
     localStorage.setItem('token', authResponse.token);
     localStorage.setItem('user', JSON.stringify(authResponse.user));
-  },
-
-  async verifyCode(code: string, email: string): Promise<{ message: string }> {
-    const response = await api.post<{ message: string }>('/api/auth/verify-code', {
-      code,
-      email,
-    });
-    return response.data;
-  },
-
-  async resendVerificationEmail(): Promise<{ message: string }> {
-    const response = await api.post<{ message: string }>('/api/auth/resend-verification');
-    return response.data;
-  },
-
-  async resendVerificationEmailByEmail(email: string): Promise<{ message: string }> {
-    const response = await api.post<{ message: string }>('/api/auth/resend-verification-by-email', {
-      email,
-    });
-    return response.data;
   },
 };
 

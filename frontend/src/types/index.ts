@@ -1,5 +1,6 @@
 export interface User {
   id: string;
+  username: string;
   email: string;
   name: string;
   role: 'USER' | 'ADMIN';
@@ -21,7 +22,9 @@ export interface Problem {
   submittedById: string;
   submittedBy?: {
     id: string;
+    username: string;
     name: string;
+    email: string;
   };
   rejectionReason?: string;
   createdAt: string;
@@ -38,6 +41,7 @@ export interface Comment {
   authorId: string;
   author: {
     id: string;
+    username: string;
     name: string;
     email: string;
   };

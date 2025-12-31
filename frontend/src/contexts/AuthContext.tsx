@@ -5,8 +5,8 @@ import { User } from '../types';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<{ user: User; token: string }>;
-  register: (email: string, password: string, name: string) => Promise<{ user: User; token: string }>;
+  login: (username: string, password: string) => Promise<{ user: User; token: string }>;
+  register: (name: string, email: string, username: string, password: string) => Promise<{ user: User; token: string }>;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -36,15 +36,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = async (email: string, password: string) => {
-    const authResponse = await authService.login(email, password);
+  const login = async (username: string, password: string) => {
+    const authResponse = await authService.login(username, password);
     authService.setAuth(authResponse);
     setUser(authResponse.user);
     return authResponse;
   };
 
-  const register = async (email: string, password: string, name: string) => {
-    const authResponse = await authService.register(email, password, name);
+  const register = async (name: string, email: string, username: string, password: string) => {
+    const authResponse = await authService.register(name, email, username, password);
     authService.setAuth(authResponse);
     setUser(authResponse.user);
     return authResponse;

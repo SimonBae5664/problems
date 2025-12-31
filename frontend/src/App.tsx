@@ -3,7 +3,6 @@ import { AuthProvider } from './contexts/AuthContext'
 import Layout from './components/Layout'
 import Login from './pages/Auth/Login'
 import Register from './pages/Auth/Register'
-import VerifyEmail from './pages/Auth/VerifyEmail'
 import ProblemList from './pages/Problems/ProblemList'
 import ProblemDetail from './pages/Problems/ProblemDetail'
 import SubmitProblem from './pages/SubmitProblem/SubmitProblem'
@@ -18,7 +17,6 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/*" element={
             <Layout>
               <Routes>

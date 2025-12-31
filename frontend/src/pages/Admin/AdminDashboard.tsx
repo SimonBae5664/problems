@@ -101,7 +101,7 @@ export default function AdminDashboard() {
                   <h3>{problem.title}</h3>
                   <p className="problem-meta">
                     <span>과목: {problem.subject}</span>
-                    <span>작성자: {problem.submittedBy?.name}</span>
+                    <span>작성자: {problem.submittedBy?.username}</span>
                     <span>상태: {problem.status}</span>
                   </p>
                   {problem.description && (

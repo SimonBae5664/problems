@@ -55,6 +55,7 @@ export class CommentService {
         author: {
           select: {
             id: true,
+            username: true,
             name: true,
             email: true,
           },
@@ -107,6 +108,7 @@ export class CommentService {
         author: {
           select: {
             id: true,
+            username: true,
             name: true,
             email: true,
           },
@@ -334,6 +336,7 @@ export class CommentService {
         author: {
           select: {
             id: true,
+            username: true,
             name: true,
             email: true,
           },
